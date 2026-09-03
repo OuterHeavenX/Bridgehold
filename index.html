@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Bridgehold</title>
+  <meta name="description" content="Hold the line for sixty seconds. A lane-runner horde shooter with no ads and no microtransactions.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@600;700&family=Barlow:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="stage">
+    <div id="frame">
+      <canvas id="cv" width="360" height="640" aria-label="Bridgehold game canvas"></canvas>
+
+      <section id="home" class="screen">
+        <h1><small>Hold the line for sixty seconds</small>BRIDGEHOLD</h1>
+        <p class="lede">Steer the squad. Shoot the gates until they turn kind. The bridge does the rest.</p>
+        <div class="stats">
+          <div class="stat"><b id="hLevel">1</b><span>Level</span></div>
+          <div class="stat gold"><b id="hCoins">0</b><span>Coins</span></div>
+          <div class="stat"><b id="hBest">0</b><span>Best squad</span></div>
+        </div>
+        <div class="label">Camp upgrades</div>
+        <div class="ups" id="ups"></div>
+        <div class="label">Earned by playing</div>
+        <div class="unls" id="unlocks"></div>
+        <button class="cta" id="deploy">Deploy</button>
+        <button class="reset" id="reset">Reset save</button>
+      </section>
+
+      <section id="end" class="screen" hidden>
+        <h1><small id="eSub">Level 1</small><span id="eTitle">LINE HELD</span></h1>
+        <p class="lede" id="eLede"></p>
+        <div class="stats">
+          <div class="stat gold"><b id="eCoins">0</b><span>Coins earned</span></div>
+          <div class="stat"><b id="eKills">0</b><span>Husks down</span></div>
+          <div class="stat"><b id="ePeak">0</b><span>Peak squad</span></div>
+        </div>
+        <div class="row" style="margin-top:auto">
+          <button class="ghost" id="toCamp">Camp</button>
+          <button class="cta" id="again" style="margin:0">Deploy</button>
+        </div>
+      </section>
+    </div>
+    <p class="hint">Drag on the bridge or use <kbd>←</kbd> <kbd>→</kbd> / <kbd>A</kbd> <kbd>D</kbd>. The squad fires by itself. <kbd>P</kbd> pauses.</p>
+  </main>
+  <script type="module" src="src/game.js"></script>
+</body>
+</html>
