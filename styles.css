@@ -12,7 +12,6 @@ body {
 }
 * { box-sizing: border-box; }
 .stage { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 16px; }
-@media (max-width: 520px) { .stage { padding: 0; } #frame { border-radius: 0; height: min(100dvh, calc(100vw * 16 / 9)); box-shadow: none; } }
 #frame {
   position: relative; height: min(100dvh, calc(100vw * 16 / 9), 780px); aspect-ratio: 9 / 16; border-radius: 26px; overflow: hidden;
   background: #dbeaf6; box-shadow: 0 0 0 1px rgba(20, 34, 56, .18), 0 40px 90px rgba(20, 40, 70, .35), inset 0 0 0 1px rgba(255, 255, 255, .5);
@@ -133,3 +132,18 @@ body:not(.has-art) .hero-art { display: none; }
 .stage-crypt .hero::before { background: radial-gradient(180px 90px at 84% 10%, rgba(120, 255, 160, .45), rgba(120, 255, 160, 0) 70%), radial-gradient(140px 60px at 22% 78%, rgba(255, 170, 70, .35), rgba(255, 170, 70, 0) 70%); }
 .stage-crypt .hero h1 { color: #f2f4f8; }
 .stage-crypt .hero h1 small { color: #9fd8b0; }
+
+/* run report and the next card on the end screen */
+.report { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+.report > div { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.report b { font-family: "Chakra Petch", sans-serif; font-size: 20px; font-variant-numeric: tabular-nums; }
+.report span { font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+.next { background: var(--panel); border: 1px solid var(--line); border-left: 4px solid var(--amber); border-radius: 12px; padding: 12px 14px; }
+.next-head { display: flex; align-items: baseline; gap: 10px; }
+.next-head span { font-size: 10px; letter-spacing: .2em; text-transform: uppercase; color: var(--dim); }
+.next-head b { font-family: "Chakra Petch", sans-serif; font-size: 16px; }
+.next p { margin: 6px 0 0; color: var(--muted); font-size: 13px; }
+.next p b { color: var(--ink); font-weight: 600; }
+
+/* phones: the frame is the screen (kept last so it wins over the base frame rule) */
+@media (max-width: 520px) { .stage { padding: 0; } #frame { border-radius: 0; height: 100dvh; width: 100vw; aspect-ratio: auto; box-shadow: none; } }

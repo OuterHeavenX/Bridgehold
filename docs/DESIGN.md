@@ -185,6 +185,25 @@ of the curve, and play will move the constants.
 - The home screen groups the level strip by stage and swaps the hero art to the
   stage of the selected level.
 
+## Pass 8, shipped: the whole screen, and juice
+
+- **The frame is the phone.** On narrow screens the frame fills the viewport and the
+  canvas height follows its aspect. The line stays 92 px above the bottom and the
+  horizon 70 px below the top, so a taller phone shows more road and more of the far
+  horde rather than bands of empty sky. The simulation is untouched; only the two
+  screen constants of the projection move.
+- **The end screen earns its space.** A run report (time held, best streak, gates
+  crossed, boss damage) and a Next card naming the next level and stage, calling out a
+  new stage when one begins, and counting the clears to the next unlock or ally.
+- **Juice.** Coins fly from every kill to the counter, which bumps as they land. Kills
+  chain into a streak with a pill under the coins from five and a banner at ten,
+  twenty-five, fifty and a hundred. Soldiers gained at a gate pop in from small. Every
+  third bullet hit throws sparks. Gate crossings tint the screen in the gate's colour
+  and punch the camera a few percent. The boss's death slows time to about a quarter
+  for most of a second under a white flash, with a shockwave ring on the deck; the
+  giant's unchaining punches and rings the same way. Kills leave a small ring where
+  the enemy stood. All of it honours reduced motion.
+
 ## What comes next
 
 - **More allies.** A third flank is not available, so later allies should replace or

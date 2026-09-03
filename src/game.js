@@ -7,7 +7,8 @@ import {
 import { createAudio } from './audio.js';
 import { loadArt } from './art.js';
 
-const W = 360, H = 640, LANE_L = 96, LANE_R = 326;
+const W = 360, LANE_L = 96, LANE_R = 326;
+let H = 640;   // logical height; set from the frame's aspect so a phone's full height is road
 // The bay: a side platform left of the bridge, holding the valve wheel and the chained giant.
 const BAY = { x0: 22, x1: 92, cx: 57, top: 150, wheelY: 372, giantY: 236 };
 const cv = document.getElementById('cv');
@@ -130,7 +131,8 @@ function startRun() {
     fireT: 0, packT: 2.6, gateT: 2.4, muzzleT: 0, banner: 1.6,
     bullets: [], husks: [], gates: [], boss: null, floats: [], parts: [],
     kills: 0, coins: 0, shake: 0, over: 0, won: false, endT: 0, flash: 0, wpnT: 0,
-    bossDmg: 0, bossDmgT: 0, tagPulse: 0,
+    bossDmg: 0, bossDmgT: 0, bossDmgTotal: 0, tagPulse: 0,
+    streak: 0, streakT: 9, streakPop: 0, bestStreak: 0, coinFx: [], rings: [], punch: 0, growFrom: 0, growT: 0, tint: null, white: 0, slow: 0, gatesCrossed: 0, coinBump: 0,
     helpers: helpersFor(save), shells: [], shellT: 0.9,
     wheel: { need: WHEEL.turns, left: WHEEL.turns, spin: 0, hitT: 0, rearmT: 0, releases: 0 },
     colossus: null, surge: 0, surgeBanner: 0,
@@ -216,6 +218,13 @@ function formation(count, cx) {
 function killHusk(h, idx) {
   G.husks.splice(idx, 1);
   G.kills++; G.coins += coinPerKill(G.level) * ENEMIES[h.kind].reward;
+  // streak, a coin that flies to the counter, and a ring on the deck
+  G.streak = G.streakT < 1.2 ? G.streak + 1 : 1; G.streakT = 0; G.streakPop = 0.25;
+  if (G.streak > G.bestStreak) G.bestStreak = G.streak;
+  if (G.streak === 10 || G.streak === 25 || G.streak === 50 || G.streak === 100) { float(G.cx, LINE_Y - 120, G.streak >= 100 ? 'UNSTOPPABLE' : G.streak >= 50 ? 'MASSACRE' : G.streak >= 25 ? 'RAMPAGE' : 'ON A ROLL', '#ffb640', 26, { pop: true, caption: G.streak + ' in a row' }); audio.gateGood(); }
+  const sp = proj(h.x, h.y);
+  if (G.coinFx.length < 48) G.coinFx.push({ x: sp.x, y: sp.y, sx: sp.x, sy: sp.y, t: 0, life: 0.55 + Math.random() * 0.2, bend: rnd(-60, 60) });
+  G.rings.push({ x: h.x, y: h.y, r: h.r, t: 0, life: 0.35, color: h.kind === 'brute' ? '190,140,255' : '255,255,255' });
   burst(h.x, h.y, h.kind === 'brute' ? '#c9a0ff' : '#a9c9a6', h.kind === 'brute' ? 14 : 4);
   audio.pop();
 }
@@ -230,6 +239,8 @@ function loseSoldiers(n) {
 function walkerDown() {
   const bs = G.boss; if (G.over) return;
   bs.hp = 0; burst(bs.x, bs.y, '#bdf3ff', 70, 260); G.shake = 10;
+  G.slow = 0.9; G.white = 0.7; G.punch = 1;
+  G.rings.push({ x: bs.x, y: bs.y + 40, r: 40, t: 0, life: 0.9, color: '189,243,255', grow: 6 });
   G.coins += bossReward(G.level) + clearBonus(G.level); G.kills++;
   float(W / 2, 200, 'LINE HELD', '#5ee39a', 34);
   audio.shatter(); audio.held();
@@ -254,7 +265,8 @@ function unchain() {
   const w = G.wheel; w.releases++; w.rearmT = WHEEL.rearmAfter;
   G.colossus = { x: BAY.cx, y: BAY.giantY, t: 0, wob: 0, phase: 'rise', stompT: 0, foot: 0 };
   G.surge = SURGE.duration; G.surgeBanner = 2.2;
-  burst(BAY.cx, BAY.giantY - 40, '#9aa3b4', 30, 240); G.shake = 8;
+  burst(BAY.cx, BAY.giantY - 40, '#9aa3b4', 30, 240); G.shake = 8; G.punch = 1;
+  G.rings.push({ x: BAY.cx, y: BAY.giantY, r: 30, t: 0, life: 0.8, color: '120,220,255', grow: 5 });
   float(W / 2, 150, 'UNCHAINED', '#bdf3ff', 34);
   audio.shatter(); audio.thump();
 }
@@ -348,7 +360,7 @@ function update(dt) {
     if (!dead && G.boss && G.boss.hp > 0 && Math.abs(b.x - G.boss.x) < G.boss.w / 2 && Math.abs(b.y - G.boss.y) < G.boss.h / 2) {
       const bs = G.boss;
       bs.hp -= b.dmg; bs.hitT = 0.08; dead = true;
-      G.bossDmg += b.dmg;
+      G.bossDmg += b.dmg; G.bossDmgTotal += b.dmg;
       burst(b.x, bs.y + bs.h / 2, '#dff7ff', 2, 120);
       audio.crack();
       while (bs.hp > 0 && bs.hp / bs.max < bs.nextCrack) { addCrack(bs); bs.nextCrack -= 0.1; }
@@ -359,6 +371,7 @@ function update(dt) {
       const dx = b.x - h.x, dy = b.y - h.y, rr = (h.r + 3) * (h.r + 3);
       if (dx * dx + dy * dy > rr) continue;
       h.hp -= b.dmg; h.hurt = 0.07;
+      if ((G.sparkN = (G.sparkN || 0) + 1) % 3 === 0) burst(b.x, h.y - 6, '#fff1c8', 2, 90);
       if (G.st.splash) for (const o of G.husks) {
         if (o === h) continue;
         const ox = o.x - h.x, oy = o.y - h.y;
@@ -411,7 +424,10 @@ function update(dt) {
       g.applied = true; g.fade = GATE_FADE; g.side = G.cx < W / 2 ? 'l' : 'r';
       const before = G.count;
       const r = applyGate(G.count, g[g.side], G.st.gate);
-      G.count = r.count;
+      G.count = r.count; G.gatesCrossed++;
+      if (G.count > before) { G.growFrom = Math.min(before, 24); G.growT = 0.45; }
+      G.punch = Math.max(G.punch, 0.6);
+      G.tint = { rgb: r.weapon ? '255,182,64' : r.good ? '77,163,255' : '255,77,94', t: 0.3 };
       const color = r.weapon ? '#ffb640' : r.good ? '#4da3ff' : '#ff4d5e';
       if (r.weapon) { G.weapon = r.weapon; G.wpnT = 1.6; audio.weapon(); }
       else if (r.good) audio.gateGood();
@@ -452,7 +468,7 @@ function update(dt) {
       const onBoss = G.boss && G.boss.hp > 0 && Math.abs(sh.tx - G.boss.x) < G.boss.w / 2 + 20 && Math.abs(sh.ty - G.boss.y) < G.boss.h / 2 + 20;
       if (!onBoss) float(sh.tx, sh.ty - 18, 'BOOM', '#ffb640', 14);
       if (onBoss) {
-        G.boss.hp = Math.max(0, G.boss.hp - sh.dmg); G.boss.hitT = 0.1; G.bossDmg += sh.dmg;
+        G.boss.hp = Math.max(0, G.boss.hp - sh.dmg); G.boss.hitT = 0.1; G.bossDmg += sh.dmg; G.bossDmgTotal += sh.dmg;
         while (G.boss.hp > 0 && G.boss.hp / G.boss.max < G.boss.nextCrack) { addCrack(G.boss); G.boss.nextCrack -= 0.1; }
         if (G.boss.hp <= 0) walkerDown();
       }
@@ -510,6 +526,19 @@ function update(dt) {
   }
 
   if (G.tagPulse > 0) G.tagPulse -= dt;
+  G.streakT += dt; if (G.streakPop > 0) G.streakPop -= dt; if (G.streakT > 1.2 && G.streak) G.streak = 0;
+  if (G.punch > 0) G.punch = Math.max(0, G.punch - dt * 4);
+  if (G.growT > 0) G.growT -= dt;
+  if (G.tint) { G.tint.t -= dt; if (G.tint.t <= 0) G.tint = null; }
+  if (G.white > 0) G.white -= dt * 1.4;
+  if (G.coinBump > 0) G.coinBump -= dt * 4;
+  for (let i = G.rings.length - 1; i >= 0; i--) { const r = G.rings[i]; r.t += dt; if (r.t > r.life) G.rings.splice(i, 1); }
+  for (let i = G.coinFx.length - 1; i >= 0; i--) {
+    const c = G.coinFx[i]; c.t += dt;
+    if (c.t >= c.life) { G.coinFx.splice(i, 1); G.coinBump = 0.3; continue; }
+    const f = c.t / c.life, e = f * f * (3 - 2 * f);
+    c.x = c.sx + (W - 94 - c.sx) * e + Math.sin(f * Math.PI) * c.bend; c.y = c.sy + (31 - c.sy) * e - Math.sin(f * Math.PI) * 40;
+  }
   for (let i = G.floats.length - 1; i >= 0; i--) { const f = G.floats[i]; f.t += dt; f.y -= (f.pop ? 16 : 28) * dt; if (f.t > f.life) G.floats.splice(i, 1); }
   for (let i = G.parts.length - 1; i >= 0; i--) {
     const p = G.parts[i]; p.t += dt; p.x += p.vx * dt; p.y += p.vy * dt; p.vy += (p.shard ? 420 : 180) * dt;
@@ -532,6 +561,13 @@ function finishRun() {
     ? (wasFrontier ? 'The walker went down. Level ' + (level + 1) + ' is open, and every coin goes to camp.' : 'The walker went down again. Best squad on this level: ' + save.levels[level].best + '.')
     : 'The bridge fell at ' + held + ' seconds. The coins are still yours.';
   countUp($('eCoins'), G.coins); countUp($('eKills'), G.kills); countUp($('ePeak'), G.peak);
+  $('eHeld').textContent = held + 's'; $('eStreak').textContent = G.bestStreak; $('eGates').textContent = G.gatesCrossed; $('eBoss').textContent = Math.round(G.bossDmgTotal).toLocaleString();
+  const nextLevel = save.selected, nextStage = stageFor(nextLevel);
+  const pending = [...UNLOCKS.map(u => ({ name: u.name, clear: u.clear })), ...HELPERS.map(h => ({ name: h.name, clear: h.clear }))].filter(u => u.clear >= save.level).sort((a, b) => a.clear - b.clear)[0];
+  const toGo = pending ? pending.clear - save.level + 1 : 0;
+  $('eNext').innerHTML = `<div class="next-head"><span>Next</span><b>Level ${nextLevel} · ${nextStage.name}</b></div>` +
+    (nextStage.from === nextLevel && nextLevel > 1 ? `<p>A new stage. New ground, a new cast, and ${nextStage.bossName.toLowerCase()} at the end of it.</p>` : '') +
+    (pending ? `<p><b>${pending.name}</b> unlocks when you clear level ${pending.clear}: ${toGo === 1 ? 'that is the next clear' : toGo + ' clears to go'}.</p>` : '<p>Every reward is earned. Only the frontier is left.</p>');
   $('again').innerHTML = won && wasFrontier ? `Deploy <small>level ${save.selected}</small>` : 'Deploy again';
   showScreen('end');
   G = null;
@@ -553,11 +589,14 @@ function countUp(el, value) {
 // depth z is the distance up the road from the line, everything scales by
 // k(z) = D / (D + z), and screen y closes on the horizon as z grows. Rows
 // below the line have negative z and draw larger, so the squad is close.
-const P = { D: 380, VH: 470, VPX: (LANE_L + LANE_R) / 2 };
-const HORIZON = LINE_Y - P.VH;
+const P = { D: 380, VH: 470, VPX: (LANE_L + LANE_R) / 2, LINE_S: LINE_Y };
+let HORIZON = 78;
+/* The line sits 92 px above the bottom of whatever height the frame has, the
+   horizon 70 px below the top; the road stretches between them. */
+function layoutFor(height) { P.LINE_S = height - 92; HORIZON = 70; P.VH = P.LINE_S - HORIZON; }
 function proj(x, y) {
   const z = LINE_Y - y, k = P.D / (P.D + z);
-  return { x: P.VPX + (x - P.VPX) * k, y: LINE_Y - P.VH * z / (P.D + z), k };
+  return { x: P.VPX + (x - P.VPX) * k, y: P.LINE_S - P.VH * z / (P.D + z), k };
 }
 function poly(pts, fill, stroke, lw) {
   ctx.beginPath();
@@ -863,7 +902,8 @@ function drawSquad() {
   for (let i = pts.length - 1; i >= 0; i--) {
     const p = proj(pts[i].x, pts[i].y);
     const frame = Math.floor(now / 160 + i) % 2;
-    const drawn = art && art.draw(ctx, 'soldier_' + frame, p.x, p.y, PPU.unit * p.k);
+    const gs = G.growT > 0 && i >= G.growFrom && !reduceMotion() ? 0.15 + 0.85 * Math.min(1, 1 - G.growT / 0.45) : 1;
+    const drawn = art && art.draw(ctx, 'soldier_' + frame, p.x, p.y, PPU.unit * p.k, gs !== 1 ? { scale: gs } : undefined);
     if (!drawn) {
       const bob = bobOn ? Math.sin(now / 120 + i) : 0, k = p.k;
       ctx.fillStyle = 'rgba(20,30,40,.3)'; ctx.beginPath(); ctx.ellipse(p.x - 3 * k, p.y + 14 * k, 7 * k, 3 * k, 0, 0, 6.28); ctx.fill();
@@ -1065,8 +1105,16 @@ function drawHUD() {
     ctx.restore();
   }
   pill(W - 108, 14, 96, 34, 'rgba(12,20,36,.72)', 10);
-  ctx.fillStyle = '#ffb640'; ctx.beginPath(); ctx.arc(W - 94, 31, 6, 0, 6.28); ctx.fill();
-  ctx.fillStyle = '#b57a1c'; ctx.beginPath(); ctx.arc(W - 94, 31, 3, 0, 6.28); ctx.fill();
+  const cb = G.coinBump > 0 && !reduceMotion() ? 1 + G.coinBump * 1.4 : 1;
+  ctx.fillStyle = '#ffb640'; ctx.beginPath(); ctx.arc(W - 94, 31, 6 * cb, 0, 6.28); ctx.fill();
+  ctx.fillStyle = '#b57a1c'; ctx.beginPath(); ctx.arc(W - 94, 31, 3 * cb, 0, 6.28); ctx.fill();
+  if (G.streak >= 5 && G.streakT < 1.2) {
+    const sp = G.streakPop > 0 && !reduceMotion() ? 1 + G.streakPop * 1.6 : 1;
+    ctx.save(); ctx.translate(W - 60, 66); ctx.scale(sp, sp);
+    pill(-40, -10, 80, 20, G.streak >= 25 ? 'rgba(255,77,94,.85)' : 'rgba(255,182,64,.85)', 10);
+    strokeText('×' + G.streak + ' STREAK', 0, 1, 11, '#fff', 700, 'rgba(0,0,0,0)');
+    ctx.restore();
+  }
   ctx.font = F(700, 18); ctx.textAlign = 'right'; ctx.fillStyle = '#ffb640'; ctx.fillText(G.coins.toLocaleString(), W - 20, 32);
   if (G.surge > 0) {
     const pulse = reduceMotion() ? 0.5 : 0.5 + Math.sin(performance.now() / 160) * 0.5;
@@ -1101,6 +1149,7 @@ function drawHUD() {
 function draw() {
   ctx.save();
   if (G && G.shake > 0 && !reduceMotion()) ctx.translate(rnd(-G.shake, G.shake), rnd(-G.shake, G.shake));
+  if (G && G.punch > 0 && !reduceMotion()) { const z = 1 + G.punch * G.punch * 0.045; ctx.translate(W / 2, H * 0.62); ctx.scale(z, z); ctx.translate(-W / 2, -H * 0.62); }
   if (G && G.stage.id === 'crypt') drawCrypt(); else drawBridge();
   if (G) {
     drawBay();
@@ -1118,6 +1167,11 @@ function draw() {
       else ctx.fillRect(p.x - 2 * k, p.y - 2 * k, 4 * k, 4 * k);
     }
     ctx.globalAlpha = 1;
+    for (const r of G.rings) {
+      const f = r.t / r.life, p = proj(r.x, r.y), rr = (r.r + (r.grow || 2.2) * r.r * f) * p.k;
+      ctx.strokeStyle = `rgba(${r.color},${(1 - f) * 0.8})`; ctx.lineWidth = Math.max(1, (r.grow ? 4 : 2) * (1 - f) * p.k + 0.5);
+      ctx.beginPath(); ctx.ellipse(p.x, p.y, rr, rr * 0.55, 0, 0, 6.28); ctx.stroke();
+    }
     drawSquad();
     for (const f of G.floats) {
       const p = proj(f.x, f.y), k = tagK(p.k);
@@ -1134,6 +1188,13 @@ function draw() {
     }
     ctx.globalAlpha = 1;
     if (G.flash > 0) { ctx.fillStyle = `rgba(255,77,94,${G.flash * 0.5})`; ctx.fillRect(0, 0, W, H); }
+    if (G.tint) { ctx.fillStyle = `rgba(${G.tint.rgb},${G.tint.t * 0.45})`; ctx.fillRect(0, 0, W, H); }
+    for (const c of G.coinFx) {
+      const f = c.t / c.life;
+      ctx.fillStyle = '#ffb640'; ctx.beginPath(); ctx.arc(c.x, c.y, 5 - f * 1.5, 0, 6.28); ctx.fill();
+      ctx.fillStyle = '#fff2c8'; ctx.beginPath(); ctx.arc(c.x - 1.2, c.y - 1.2, 1.8, 0, 6.28); ctx.fill();
+    }
+    if (G.white > 0) { ctx.fillStyle = `rgba(255,255,255,${Math.min(0.85, G.white)})`; ctx.fillRect(0, 0, W, H); }
   }
   ctx.drawImage(G && G.stage.id === 'crypt' ? layers.vignetteDark : layers.vignette, 0, 0);
   if (G) drawHUD();
@@ -1142,14 +1203,19 @@ function draw() {
 
 // ---------- loop & input ----------
 function frame(now) {
-  const dt = Math.min(0.033, (now - last) / 1000); last = now;
+  const real = Math.min(0.033, (now - last) / 1000); last = now;
+  let dt = real;
+  if (G && G.slow > 0) { G.slow -= real; dt = real * 0.28; }
   if (!paused) update(dt);
   draw();
   requestAnimationFrame(frame);
 }
 function setup() {
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const r = document.getElementById('frame').getBoundingClientRect();
+  H = r.width > 0 ? Math.max(640, Math.min(840, Math.round(W * r.height / r.width))) : 640;
   cv.width = W * dpr; cv.height = H * dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  layoutFor(H); buildLayers();
 }
 const toXY = e => { const r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left) / r.width * W, y: (e.clientY - r.top) / r.height * H }; };
 cv.addEventListener('pointerdown', e => {
@@ -1169,7 +1235,7 @@ window.addEventListener('keyup', e => { keys[e.code] = false; });
 document.addEventListener('visibilitychange', () => { if (document.hidden && G) paused = true; });
 window.addEventListener('resize', setup);
 
-setup(); buildLayers(); renderHome(); showScreen('home');
+setup(); renderHome(); showScreen('home');
 // ?debug exposes the live run for tuning scripts and headless bots.
 if (location.search.includes('debug')) window.bridgehold = { get run() { return G; }, get save() { return save; }, W, LINE_Y, LANE_L, BAY };
 if (document.fonts && document.fonts.load) {
