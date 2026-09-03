@@ -39,7 +39,8 @@ Drag on the bridge, or use `←` `→` / `A` `D`, to steer. The squad fires by i
   squad's fire on that half, whatever its size, so turning a gate is always a steering
   decision measured in seconds. Multipliers step up every eight steps, and a multiplier never adds more than eighty
   soldiers. Which half you cross is decided by where the
-  squad's centre is.
+  squad's centre is. The half you cross shatters and the bonus lands at the line, with a
+  caption saying what it did.
 - **Weapon gates** (from level 2) swap the squad's weapon for the rest of the run. The
   shotgun fires three pellets in a spread and shreds packs up close. The rail fires
   slowly, hits a little harder, and passes through everything in its line.
