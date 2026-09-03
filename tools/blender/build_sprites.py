@@ -408,16 +408,37 @@ def sentinel():
 
 
 def frostlamp():
-    """A tall lantern on a tripod with a cold blue flame."""
-    post = mat("fpost", (0.30, 0.34, 0.44), metallic=0.6, roughness=0.5)
-    for i in range(3):
-        a = i * math.tau / 3
-        cyl(0.05, 1.4, loc=(math.cos(a) * 0.35, math.sin(a) * 0.35, 0.7), rot=(math.sin(a) * 0.5, -math.cos(a) * 0.5, 0), material=post)
-    cyl(0.07, 1.8, loc=(0, 0, 2.0), material=post)
-    box((0.7, 0.7, 0.9), loc=(0, 0, 3.1), material=mat("fglass", (0.75, 0.95, 1.0), roughness=0.05, transmission=0.9, ior=1.4), bevel=0.05)
-    box((0.8, 0.8, 0.1), loc=(0, 0, 3.6), material=post)
-    box((0.8, 0.8, 0.1), loc=(0, 0, 2.62), material=post)
-    ball(0.22, loc=(0, 0, 3.05), material=mat("fflame", (0.6, 0.9, 1.0), emission=(0.55, 0.9, 1.0), strength=40))
+    """A big hurricane lantern on an iron pedestal: a wide frosted globe in a
+    barred cage, a domed cap with a ring handle, and a cold flame inside."""
+    iron = mat("firon", (0.22, 0.25, 0.32), metallic=0.75, roughness=0.45)
+    iron_d = mat("firon_d", (0.12, 0.14, 0.19), metallic=0.7, roughness=0.5)
+    # pedestal: a stepped plinth
+    cyl(0.95, 0.22, loc=(0, 0, 0.11), verts=8, material=iron_d, bevel=0.02)
+    cyl(0.72, 0.28, loc=(0, 0, 0.36), verts=8, material=iron, bevel=0.02)
+    cyl(0.30, 0.9, loc=(0, 0, 0.95), verts=8, material=iron)
+    # lantern base plate and oil well
+    cyl(0.78, 0.16, loc=(0, 0, 1.48), verts=8, material=iron, bevel=0.02)
+    cyl(0.55, 0.22, loc=(0, 0, 1.66), verts=8, material=iron_d, bevel=0.02)
+    # frosted globe
+    glass = mat("fglass", (0.80, 0.95, 1.0), roughness=0.35, transmission=0.85, ior=1.3, alpha=0.9)
+    cyl(0.62, 1.3, loc=(0, 0, 2.42), verts=32, material=glass, bevel=0.0)
+    # cage bars around the globe, and top and bottom rings
+    for i in range(6):
+        a = i * math.tau / 6
+        cyl(0.035, 1.34, loc=(math.cos(a) * 0.64, math.sin(a) * 0.64, 2.42), material=iron_d, bevel=0)
+    cyl(0.68, 0.08, loc=(0, 0, 1.80), verts=24, material=iron, bevel=0.0)
+    cyl(0.68, 0.08, loc=(0, 0, 3.06), verts=24, material=iron, bevel=0.0)
+    # domed cap, chimney and ring handle
+    ball(0.72, loc=(0, 0, 3.08), material=iron, scale=(1, 1, 0.55))
+    cyl(0.16, 0.3, loc=(0, 0, 3.55), material=iron_d)
+    bpy.ops.mesh.primitive_torus_add(major_radius=0.3, minor_radius=0.04, location=(0, 0, 3.95),
+                                     rotation=(math.radians(90), 0, 0), major_segments=32, minor_segments=8)
+    finish(bpy.context.object, iron, 0, smooth=True)
+    # the cold flame: a bright core and a soft halo sphere
+    core = mat("fcore", (0.85, 0.98, 1.0), emission=(0.75, 0.95, 1.0), strength=60)
+    halo = mat("fhalo", (0.55, 0.9, 1.0), emission=(0.45, 0.85, 1.0), strength=8, alpha=0.35)
+    ball(0.16, loc=(0, 0, 2.3), material=core, scale=(1, 1, 1.6))
+    ball(0.42, loc=(0, 0, 2.42), material=halo)
 
 
 def lamp():
@@ -442,7 +463,7 @@ PARTS = {
     "walker":    (walker, 512, 6.4, "the frozen walker; ground point at centre"),
     "lamp":      (lamp, 96, 3.2, "rail lamp post"),
     "sentinel":  (sentinel, 192, 4.2, "ally walker; faces up the lane; ground point at centre"),
-    "frostlamp": (frostlamp, 128, 4.6, "ally lantern; ground point at centre"),
+    "frostlamp": (frostlamp, 160, 6.4, "ally lantern; ground point at centre"),
 }
 
 

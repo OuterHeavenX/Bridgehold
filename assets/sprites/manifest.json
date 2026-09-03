@@ -15,8 +15,8 @@
     "frostlamp": {
       "file": "frostlamp.png",
       "note": "ally lantern; ground point at centre",
-      "pixelsPerUnit": 27.826,
-      "size": 128
+      "pixelsPerUnit": 25.0,
+      "size": 160
     },
     "husk_0": {
       "file": "husk_0.png",

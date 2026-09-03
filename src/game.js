@@ -14,7 +14,7 @@ const $ = id => document.getElementById(id);
 
 // Game pixels per Blender unit, per sprite family. The walker is drawn at a
 // larger scale on purpose: it is meant to be monumental.
-const PPU = { unit: 14, brute: 16, walker: 45, lamp: 11, sentinel: 17, frostlamp: 12 };
+const PPU = { unit: 14, brute: 16, walker: 45, lamp: 11, sentinel: 17, frostlamp: 19 };
 const FLANK = { l: LANE_L + 30, r: LANE_R - 30, y: LINE_Y + 44 };
 let art = null;
 loadArt().then(pack => { art = pack; document.body.classList.toggle('has-art', !!pack); });
@@ -770,11 +770,13 @@ function drawAllies() {
       ctx.fillStyle = glow; ctx.fillRect(x - 40, y - 40, 80, 80);
     } else if (h.k === 'frost') {
       if (!(art && art.draw(ctx, 'frostlamp', x, y, PPU.frostlamp))) {
-        ctx.fillStyle = '#4c5568'; ctx.fillRect(x - 2, y - 44, 4, 44);
-        ctx.fillStyle = '#bdf3ff'; ctx.fillRect(x - 6, y - 52, 12, 12);
+        ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.beginPath(); ctx.ellipse(x, y + 4, 16, 6, 0, 0, 6.28); ctx.fill();
+        ctx.fillStyle = '#2b3140'; ctx.fillRect(x - 12, y - 6, 24, 8); ctx.fillRect(x - 4, y - 24, 8, 18);
+        ctx.fillStyle = 'rgba(189,243,255,.7)'; ctx.fillRect(x - 10, y - 46, 20, 22);
+        ctx.fillStyle = '#2b3140'; ctx.fillRect(x - 12, y - 52, 24, 6);
       }
       const p = reduceMotion() ? 1 : 1 + Math.sin(performance.now() / 300) * 0.15;
-      const halo = ctx.createRadialGradient(x, y - 40, 2, x, y - 40, 34 * p);
+      const halo = ctx.createRadialGradient(x, y - 36, 2, x, y - 36, 44 * p);
       halo.addColorStop(0, 'rgba(189,243,255,.5)'); halo.addColorStop(1, 'rgba(189,243,255,0)');
       ctx.fillStyle = halo; ctx.fillRect(x - 40, y - 80, 80, 80);
     }
