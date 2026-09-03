@@ -55,14 +55,31 @@ Bridgehold keeps the loop and drops the rest.
 Base squad DPS before upgrades is 100. These are first guesses; the tests pin the shape
 of the curve, and play will move the constants.
 
+## Pass 2, shipped
+
+- **Sound.** Procedural WebAudio in `src/audio.js`: tracer ticks, a ping per gate hit
+  pitched to the gate's value, a two-note chime for a good gate, a thud for a bad one, a
+  crack per walker hit, a shatter and a four-note arpeggio when the line holds. Every
+  cue is throttled so a volley does not become a buzz.
+- **Walker feedback.** Cracks spread across the ice at every ten percent of health
+  lost, chips fly per hit, and the number bounces on each volley.
+- **Runners and brutes.** Runners from level 2, brutes from level 3, both as multipliers
+  of the husk baseline in `ENEMIES`. A brute parks at the line and chews one soldier a
+  second, so it is the first enemy that punishes ignoring it rather than touching it.
+- **Weapon gates.** From level 2, a weapon gate replaces the ×3 roll about seven percent
+  of the time. Shotgun: three pellets, 1.7× rifle DPS if every pellet lands, useless at
+  range. Rail: 1.16× rifle single-target, pierces everything. A test pins both ratios so
+  neither becomes a free upgrade.
+- **Level select.** The home screen shows every open level with its best squad. Only
+  clearing the frontier opens the next level; replaying old ones still pays.
+- **Settings.** Sound and reduced motion, saved with the game. Tap the clock to pause.
+
 ## What comes next
 
-- **Sound.** Tracer ticks, gate chimes, a low crack when the ice takes a hit.
-- **Enemy variety.** A fast runner that takes one soldier and dies; a brute that stops
-  at the line and chews; a shield husk that only pierce or frag can hurt efficiently.
-- **Weapon gates.** Gates that swap the squad's weapon for the rest of the run: a shotgun
-  spread for packs, a rail for the walker.
-- **A level select** with a per-level best squad, so an old level is worth replaying.
+- **A shield husk** that only pierce or frag hurts efficiently, so the unlocks change
+  how a pack is read rather than only adding damage.
 - **A daily seed.** Same gate rolls for everyone that day, a local best to beat. Social
   without a server.
-- **Pause and settings.** Mute, reduced motion, left-handed layout.
+- **The squad cap.** A headless level-4 run with a mid-rank camp hit the 300 cap. Either
+  the cap rises with level or ×3 gates get rarer past level 3; play decides.
+- **Left-handed layout** and a settings sheet once there are more than two toggles.

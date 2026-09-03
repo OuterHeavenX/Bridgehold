@@ -69,8 +69,8 @@ test('a cleared level pays for at least two upgrades at that level', () => {
 
 test('packs get denser as the clock runs down', () => {
   assert.ok(packInterval(RUN_T) < packInterval(0));
-  assert.ok(packSize(3, 0.5) > packSize(1, 0.5));
-  assert.ok(packSize(30, 0.99) <= 44);
+  assert.ok(packSize('husk', 3, 0.5) > packSize('husk', 1, 0.5));
+  assert.ok(packSize('husk', 30, 0.99) <= 44);
 });
 
 test('every gate roll is a valid half', () => {

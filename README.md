@@ -29,10 +29,17 @@ Drag on the bridge, or use `←` `→` / `A` `D`, to steer. The squad fires by i
 - **Packs.** Husk packs come down the lane. The red number above a pack is how many
   soldiers it will cost if it reaches the line. Every husk that touches the line takes
   one soldier.
+- **Runners** (from level 2) come in fast strings and die to a single hit. Steering
+  matters against them.
+- **Brutes** (from level 3) walk slowly, park at the line, and chew one soldier a second
+  until killed. Their purple tag is their remaining health. Focus fire matters.
 - **Gates.** Gates come in pairs. Every bullet that hits a gate nudges its number toward
   you: a `−6` becomes `−5`, then `−4`, and with enough fire a `+2` before you cross it.
   Multipliers step up every eight hits. Which half you cross is decided by where the
   squad's centre is.
+- **Weapon gates** (from level 2) swap the squad's weapon for the rest of the run. The
+  shotgun fires three pellets in a spread and shreds packs up close. The rail fires
+  slowly, hits a little harder, and passes through everything in its line.
 - **The walker.** At sixty seconds the packs stop and the frozen walker descends. Drain
   its number before it reaches the line and the level is cleared. If it reaches the line
   it crushes six percent of the squad every third of a second until one of you is gone.
@@ -59,6 +66,12 @@ Two weapons are earned by play and cannot be bought:
 - **Piercing rounds** after clearing level 3. Each shot passes through one husk.
 - **Frag rounds** after clearing level 6. Hits splash nearby husks for half damage.
 
+Cleared levels stay open on the home screen with your best squad on each, so an old
+level is worth replaying. Only clearing the frontier level opens the next one.
+
+Sound is procedural WebAudio, no files, and can be turned off on the home screen along
+with a reduced-motion option that also honours the OS setting.
+
 Progress saves in the browser under the `bridgehold` key.
 
 ## Repository layout
@@ -67,6 +80,7 @@ Progress saves in the browser under the `bridgehold` key.
 index.html        the launch path
 styles.css        all presentation
 src/balance.js    every number that decides fairness, with no canvas or DOM
+src/audio.js      procedural sound cues, built on demand from oscillators and noise
 src/game.js       runtime: spawning, steering, bullets, gates, the walker, rendering
 tests/            node --test suite over src/balance.js
 docs/DESIGN.md    the design brief and what comes next

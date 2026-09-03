@@ -22,10 +22,16 @@
           <div class="stat gold"><b id="hCoins">0</b><span>Coins</span></div>
           <div class="stat"><b id="hBest">0</b><span>Best squad</span></div>
         </div>
+        <div class="label">Bridge</div>
+        <div class="levels" id="levels"></div>
         <div class="label">Camp upgrades</div>
         <div class="ups" id="ups"></div>
         <div class="label">Earned by playing</div>
         <div class="unls" id="unlocks"></div>
+        <div class="row settings">
+          <button class="ghost small" id="sound" aria-pressed="true">Sound on</button>
+          <button class="ghost small" id="motion" aria-pressed="false">Motion full</button>
+        </div>
         <button class="cta" id="deploy">Deploy</button>
         <button class="reset" id="reset">Reset save</button>
       </section>
@@ -44,7 +50,7 @@
         </div>
       </section>
     </div>
-    <p class="hint">Drag on the bridge or use <kbd>←</kbd> <kbd>→</kbd> / <kbd>A</kbd> <kbd>D</kbd>. The squad fires by itself. <kbd>P</kbd> pauses.</p>
+    <p class="hint">Drag on the bridge or use <kbd>←</kbd> <kbd>→</kbd> / <kbd>A</kbd> <kbd>D</kbd>. The squad fires by itself. Tap the clock or press <kbd>P</kbd> to pause.</p>
   </main>
   <script type="module" src="src/game.js"></script>
 </body>
