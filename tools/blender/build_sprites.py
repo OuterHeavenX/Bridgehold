@@ -454,10 +454,16 @@ def walker():
             ball(0.24, loc=(sx * 2.05, sy, 0.1 + lift), material=hull)
     # The ice: a beveled block with glass-like transmission around the mech,
     # a frost cap, and a few inner planes so the light breaks up inside.
-    ice = mat("ice", (0.80, 0.95, 1.0), metallic=0.0, roughness=0.04, transmission=0.96, ior=1.25)
+    ice = mat("ice", (0.30, 0.62, 0.92), metallic=0.0, roughness=0.28, transmission=0.5, ior=1.31)
     box((4.8, 3.4, 3.5), loc=(0, 0, 1.75), material=ice, bevel=0.22)
-    frost = mat("frost", (0.86, 0.97, 1.0), roughness=0.9, alpha=0.35)
+    frost = mat("frost", (0.45, 0.72, 0.92), roughness=0.85, alpha=0.6)
     box((4.82, 3.42, 0.4), loc=(0, 0, 3.35), material=frost, bevel=0.1)
+    # a dark iron cradle under the block so it sits on the road rather than floats
+    cradle = mat("cradle", (0.16, 0.17, 0.2), metallic=0.7, roughness=0.5)
+    box((5.2, 3.8, 0.35), loc=(0, 0, 0.17), material=cradle, bevel=0.05)
+    for sx in (-1, 1):
+        for sy in (-1, 1):
+            box((0.35, 0.35, 3.7), loc=(sx * 2.45, sy * 1.75, 1.85), material=cradle, bevel=0.04)
     facet = mat("facet", (0.9, 0.98, 1.0), roughness=0.3, alpha=0.18)
     box((0.02, 2.4, 2.6), loc=(-1.4, 0.2, 1.8), rot=(0, math.radians(12), math.radians(20)), material=facet, bevel=0)
     box((0.02, 2.0, 2.2), loc=(1.5, -0.3, 1.6), rot=(0, math.radians(-15), math.radians(-30)), material=facet, bevel=0)

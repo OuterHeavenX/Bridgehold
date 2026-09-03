@@ -17,7 +17,7 @@ const $ = id => document.getElementById(id);
 
 // Game pixels per Blender unit, per sprite family. The walker is drawn at a
 // larger scale on purpose: it is meant to be monumental.
-const PPU = { unit: 14, brute: 16, walker: 45, lamp: 11, sentinel: 17, frostlamp: 19, colossus: 22, wheel: 14 };
+const PPU = { unit: 14, brute: 16, walker: 58, lamp: 11, sentinel: 17, frostlamp: 19, colossus: 22, wheel: 14 };
 const FLANK = { l: LANE_L + 30, r: LANE_R - 30, y: LINE_Y + 44 };
 let art = null;
 loadArt().then(pack => { art = pack; document.body.classList.toggle('has-art', !!pack); });
@@ -188,7 +188,7 @@ function addCrack(b) {
 
 // ---------- helpers ----------
 const GATE_FADE = 0.42;
-function float(x, y, txt, color, size, opts = {}) { G.floats.push({ x, y, txt, color, size: size || 18, t: 0, pop: !!opts.pop, caption: opts.caption || null, life: opts.pop ? 1.5 : 1.1 }); }
+function float(x, y, txt, color, size, opts = {}) { G.floats.push({ x, y, txt, color, size: size || 18, t: 0, pop: !!opts.pop, caption: opts.caption || null, life: opts.pop ? 1.5 : 1.1, sy: opts.sy }); }
 /* Glass shards from a broken gate half: thin rotated slivers in its colour. */
 function shards(x0, x1, y, color, n) {
   for (let i = 0; i < n; i++) {
@@ -377,7 +377,7 @@ function update(dt) {
     G.bossDmgT += dt;
     if (G.bossDmgT >= 0.25) {
       G.bossDmgT = 0;
-      if (G.bossDmg > 0) { float(G.boss.x + rnd(-50, 50), G.boss.y - 20, '-' + Math.round(G.bossDmg).toLocaleString(), '#dff7ff', 22); G.bossDmg = 0; }
+      if (G.bossDmg > 0) { float(G.boss.x + rnd(-30, 30), G.boss.y, '-' + Math.round(G.bossDmg).toLocaleString(), '#dff7ff', 22, { sy: G.bossTop || 120 }); G.bossDmg = 0; }
     }
   }
 
@@ -449,8 +449,9 @@ function update(dt) {
     if (sh.t >= sh.dur) {
       G.shells.splice(i, 1);
       burst(sh.tx, sh.ty, '#ffb640', 16, 220); G.shake = Math.max(G.shake, 2.5);
-      float(sh.tx, sh.ty - 18, 'BOOM', '#ffb640', 14);
-      if (G.boss && G.boss.hp > 0 && Math.abs(sh.tx - G.boss.x) < G.boss.w / 2 + 20 && Math.abs(sh.ty - G.boss.y) < G.boss.h / 2 + 20) {
+      const onBoss = G.boss && G.boss.hp > 0 && Math.abs(sh.tx - G.boss.x) < G.boss.w / 2 + 20 && Math.abs(sh.ty - G.boss.y) < G.boss.h / 2 + 20;
+      if (!onBoss) float(sh.tx, sh.ty - 18, 'BOOM', '#ffb640', 14);
+      if (onBoss) {
         G.boss.hp = Math.max(0, G.boss.hp - sh.dmg); G.boss.hitT = 0.1; G.bossDmg += sh.dmg;
         while (G.boss.hp > 0 && G.boss.hp / G.boss.max < G.boss.nextCrack) { addCrack(G.boss); G.boss.nextCrack -= 0.1; }
         if (G.boss.hp <= 0) walkerDown();
@@ -1018,6 +1019,7 @@ function drawBoss() {
   const bob = reduceMotion() ? 0 : Math.sin(b.wob * 2) * 1.5;
   const p = proj(b.x, b.y + 36 + bob), k = p.k;
   const drawn = art && art.draw(ctx, G.stage.boss, p.x, p.y, PPU.walker * k);
+  G.bossTop = p.y - (art && art.parts[G.stage.boss] ? art.parts[G.stage.boss].size * (PPU.walker * k) / art.parts[G.stage.boss].ppu * 0.52 : 90 * k) - 12;
   if (drawn && b.hitT > 0) {
     ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.35;
     art.draw(ctx, G.stage.boss, p.x, p.y, PPU.walker * k); ctx.restore();
@@ -1034,12 +1036,14 @@ function drawBoss() {
   ctx.strokeStyle = 'rgba(255,255,255,.85)'; ctx.lineWidth = 1.5 / k; ctx.lineJoin = 'round';
   for (const c of b.cracks) { ctx.beginPath(); ctx.moveTo(c[0][0], c[0][1]); for (let i = 1; i < c.length; i++) ctx.lineTo(c[i][0], c[i][1]); ctx.stroke(); }
   ctx.restore();
-  const frac = b.hp / b.max, bk = Math.max(0.55, k);
-  pill(x + 12 * k, y + h - 12 * k, w - 24 * k, 7 * bk, 'rgba(0,0,0,.4)', 3);
-  pill(x + 12 * k, y + h - 12 * k, Math.max(6, (w - 24 * k) * frac), 7 * bk, frac > 0.35 ? '#bdf3ff' : '#ffb640', 3);
+  const frac = b.hp / b.max, bk = Math.max(0.85, k), ty = p.y + 14 * k;
   const bounce = reduceMotion() ? 1 : 1 + Math.max(0, b.hitT) * 2.5;
-  ctx.save(); ctx.translate(p.x, y + h - 44 * k); ctx.scale(bounce * bk, bounce * bk);
-  strokeText(Math.ceil(b.hp).toLocaleString(), 0, 0, 40, '#fff');
+  const label = Math.ceil(b.hp).toLocaleString(), lw = Math.max(120, label.length * 24 + 30) * bk;
+  pill(p.x - lw / 2, ty - 24 * bk, lw, 48 * bk, 'rgba(12,20,36,.78)', 10 * bk);
+  pill(p.x - lw / 2 + 10 * bk, ty + 14 * bk, lw - 20 * bk, 5 * bk, 'rgba(255,255,255,.18)', 2.5);
+  pill(p.x - lw / 2 + 10 * bk, ty + 14 * bk, Math.max(4, (lw - 20 * bk) * frac), 5 * bk, frac > 0.35 ? '#bdf3ff' : '#ffb640', 2.5);
+  ctx.save(); ctx.translate(p.x, ty - 3 * bk); ctx.scale(bounce * bk, bounce * bk);
+  strokeText(label, 0, 0, 32, '#fff', 700, 'rgba(0,0,0,0)');
   ctx.restore();
 }
 function drawHUD() {
@@ -1117,6 +1121,7 @@ function draw() {
     drawSquad();
     for (const f of G.floats) {
       const p = proj(f.x, f.y), k = tagK(p.k);
+      if (f.sy !== undefined) p.y = f.sy - f.t * 22;
       ctx.globalAlpha = 1 - Math.max(0, f.t - (f.life - 0.5)) / 0.5;
       if (f.pop) {
         const kk = Math.min(1, f.t / 0.18), sc = (reduceMotion() ? 1 : 1.7 - 0.7 * (1 - Math.pow(1 - kk, 3))) * k;
