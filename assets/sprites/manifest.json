@@ -3,14 +3,26 @@
     "brute_0": {
       "file": "brute_0.png",
       "note": "faces down the lane; walk frame A",
-      "pixelsPerUnit": 61.935,
-      "size": 192
+      "pixelsPerUnit": 72.258,
+      "size": 224
     },
     "brute_1": {
       "file": "brute_1.png",
       "note": "faces down the lane; walk frame B",
-      "pixelsPerUnit": 61.935,
-      "size": 192
+      "pixelsPerUnit": 72.258,
+      "size": 224
+    },
+    "colossus_0": {
+      "file": "colossus_0.png",
+      "note": "the giant; faces up the lane; walk frame A",
+      "pixelsPerUnit": 35.556,
+      "size": 320
+    },
+    "colossus_1": {
+      "file": "colossus_1.png",
+      "note": "the giant; faces up the lane; walk frame B",
+      "pixelsPerUnit": 35.556,
+      "size": 320
     },
     "frostlamp": {
       "file": "frostlamp.png",
@@ -21,14 +33,14 @@
     "husk_0": {
       "file": "husk_0.png",
       "note": "faces down the lane; walk frame A",
-      "pixelsPerUnit": 60.952,
-      "size": 128
+      "pixelsPerUnit": 76.19,
+      "size": 160
     },
     "husk_1": {
       "file": "husk_1.png",
       "note": "faces down the lane; walk frame B",
-      "pixelsPerUnit": 60.952,
-      "size": 128
+      "pixelsPerUnit": 76.19,
+      "size": 160
     },
     "lamp": {
       "file": "lamp.png",
@@ -45,14 +57,14 @@
     "runner_0": {
       "file": "runner_0.png",
       "note": "faces down the lane; sprint frame A",
-      "pixelsPerUnit": 60.952,
-      "size": 128
+      "pixelsPerUnit": 76.19,
+      "size": 160
     },
     "runner_1": {
       "file": "runner_1.png",
       "note": "faces down the lane; sprint frame B",
-      "pixelsPerUnit": 60.952,
-      "size": 128
+      "pixelsPerUnit": 76.19,
+      "size": 160
     },
     "sentinel": {
       "file": "sentinel.png",
@@ -63,20 +75,26 @@
     "soldier_0": {
       "file": "soldier_0.png",
       "note": "faces up the lane; walk frame A",
-      "pixelsPerUnit": 60.952,
-      "size": 128
+      "pixelsPerUnit": 76.19,
+      "size": 160
     },
     "soldier_1": {
       "file": "soldier_1.png",
       "note": "faces up the lane; walk frame B",
-      "pixelsPerUnit": 60.952,
-      "size": 128
+      "pixelsPerUnit": 76.19,
+      "size": 160
     },
     "walker": {
       "file": "walker.png",
       "note": "the frozen walker; ground point at centre",
       "pixelsPerUnit": 80.0,
       "size": 512
+    },
+    "wheel": {
+      "file": "wheel.png",
+      "note": "the bay's valve wheel, seen from above; rotate to spin",
+      "pixelsPerUnit": 36.923,
+      "size": 96
     }
   },
   "tilt": 52.0

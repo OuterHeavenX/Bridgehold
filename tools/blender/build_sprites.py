@@ -273,35 +273,59 @@ OLIVE = (0.36, 0.44, 0.26)
 OLIVE_D = (0.17, 0.21, 0.13)
 
 
-def legs(y_off, stride, r=0.09, h=0.6, color=NAVY_D, spread=0.14, z=0.3):
-    """Two legs, one swung forward by `stride` along Y."""
+def legs(y_off, stride, r=0.09, h=0.6, color=NAVY_D, spread=0.14, z=0.3, boots=None):
+    """Two legs, one swung forward by `stride` along Y, with optional boots."""
     m = mat("legs", color, roughness=0.7)
-    cyl(r, h, loc=(-spread, y_off + stride, z), material=m)
-    cyl(r, h, loc=(spread, y_off - stride, z), material=m)
+    for sx, sy in ((-spread, y_off + stride), (spread, y_off - stride)):
+        cyl(r, h, loc=(sx, sy, z), material=m)
+        if boots:
+            box((r * 2.3, r * 3.2, r * 1.6), loc=(sx, sy + r * 0.6, r * 0.8), material=boots, bevel=0.01)
 
 
 def soldier(frame):
     stride = 0.12 if frame == 0 else -0.12
-    legs(0, stride)
+    boots = mat("boots", (0.10, 0.09, 0.10), roughness=0.5)
+    legs(0, stride, boots=boots)
+    # knee pads
+    pad = mat("pad", NAVY_D, roughness=0.5)
+    ball(0.1, loc=(-0.14, stride + 0.09, 0.42), material=pad)
+    ball(0.1, loc=(0.14, -stride + 0.09, 0.42), material=pad)
     torso = mat("coat", NAVY, roughness=0.6)
     box((0.5, 0.32, 0.62), loc=(0, 0, 0.91), material=torso)
     vest = mat("vest", AMBER, roughness=0.5)
     box((0.42, 0.14, 0.42), loc=(0, -0.12, 0.92), material=vest)   # back plate (faces camera)
     box((0.42, 0.14, 0.42), loc=(0, 0.12, 0.92), material=vest)
-    # backpack, lantern
+    # hazard stripe across the back plate, shoulder straps, pouches
+    stripe = mat("stripe", (0.12, 0.12, 0.14), roughness=0.6)
+    box((0.42, 0.02, 0.06), loc=(0, -0.2, 0.92), material=stripe, bevel=0)
+    for sx in (-0.15, 0.15):
+        box((0.08, 0.36, 0.05), loc=(sx, 0, 1.24), material=stripe, bevel=0)
+        box((0.12, 0.1, 0.14), loc=(sx, -0.24, 0.72), material=pad)   # belt pouches
+    # backpack with a bedroll and a radio antenna
     box((0.3, 0.16, 0.34), loc=(0, -0.26, 0.98), material=mat("pack", NAVY_D, roughness=0.8))
+    cyl(0.07, 0.34, loc=(0, -0.3, 1.2), rot=(0, math.radians(90), 0), material=mat("roll", (0.35, 0.32, 0.26), roughness=0.9))
+    cyl(0.012, 0.5, loc=(-0.12, -0.32, 1.35), material=stripe, bevel=0)
     ball(0.07, loc=(0.2, -0.3, 0.8), material=mat("lantern", (1, 0.7, 0.3), emission=(1.0, 0.62, 0.2), strength=14))
+    # head, helmet with a brim and a visor stripe, collar
     ball(0.17, loc=(0, 0, 1.4), material=mat("skin", SKIN, roughness=0.6))
-    # helmet
-    ball(0.2, loc=(0, 0, 1.46), material=mat("helmet", NAVY_D, roughness=0.45), scale=(1, 1, 0.75))
-    # arms forward holding the rifle
+    cyl(0.2, 0.08, loc=(0, 0, 1.3), material=torso)   # collar
+    ball(0.21, loc=(0, 0, 1.47), material=mat("helmet", NAVY_D, roughness=0.45), scale=(1, 1, 0.75))
+    cyl(0.235, 0.03, loc=(0, 0, 1.4), material=mat("brim", NAVY_D, roughness=0.45), bevel=0)
+    box((0.3, 0.06, 0.05), loc=(0, 0.2, 1.44), material=mat("visor", (0.6, 0.9, 1.0), emission=(0.5, 0.85, 1.0), strength=4), bevel=0)
+    # arms forward holding the rifle, with gloves
     arm = mat("arm", NAVY, roughness=0.6)
+    glove = mat("glove", (0.18, 0.15, 0.12), roughness=0.7)
     cyl(0.07, 0.5, loc=(-0.3, 0.2, 1.0), rot=(math.radians(90), 0, 0), material=arm)
     cyl(0.07, 0.5, loc=(0.3, 0.2, 1.0), rot=(math.radians(90), 0, 0), material=arm)
-    # rifle, pointing up the lane
+    ball(0.08, loc=(-0.28, 0.45, 1.0), material=glove)
+    ball(0.08, loc=(0.24, 0.42, 1.03), material=glove)
+    # rifle: barrel, receiver, magazine, stock, sight
     g = mat("gun", GUN, metallic=0.6, roughness=0.35)
     cyl(0.045, 1.0, loc=(0.18, 0.55, 1.05), rot=(math.radians(90), 0, 0), material=g)
     box((0.1, 0.34, 0.16), loc=(0.18, 0.2, 1.0), material=g)
+    box((0.06, 0.1, 0.22), loc=(0.18, 0.28, 0.88), material=g)     # magazine
+    box((0.08, 0.26, 0.1), loc=(0.18, -0.06, 0.98), material=mat("stock", (0.3, 0.2, 0.12), roughness=0.7))
+    box((0.03, 0.08, 0.06), loc=(0.18, 0.5, 1.12), material=g, bevel=0)   # sight
 
 
 def muzzle():
@@ -315,32 +339,58 @@ def husk(frame):
     stride = 0.14 if frame == 0 else -0.14
     legs(0, stride, r=0.08, h=0.5, color=HUSK_D, spread=0.13, z=0.25)
     body = mat("husk", HUSK, roughness=0.8)
+    rags = mat("rags", HUSK_D, roughness=0.95)
+    bone = mat("bone", (0.82, 0.84, 0.72), roughness=0.7)
     # hunched, leaning toward the camera (down the lane)
     ball(0.34, loc=(0, -0.05, 0.82), material=body, scale=(1, 0.8, 1.05))
-    box((0.5, 0.2, 0.36), loc=(0, 0.02, 0.62), material=mat("rags", HUSK_D, roughness=0.9))
+    # torn coat panels hanging off the shoulders and hips
+    box((0.5, 0.2, 0.36), loc=(0, 0.02, 0.62), material=rags)
+    box((0.16, 0.18, 0.4), loc=(-0.28, 0.06, 0.5), material=rags, bevel=0)
+    box((0.12, 0.18, 0.3), loc=(0.3, 0.02, 0.44), material=rags, bevel=0)
+    # exposed ribs on the chest
+    for i in range(3):
+        cyl(0.015, 0.4, loc=(0, -0.36, 0.72 + i * 0.09), rot=(0, math.radians(90), 0), material=bone, bevel=0)
+    # head, jaw hanging open, teeth, glowing eyes
     ball(0.2, loc=(0, -0.22, 1.18), material=body)
+    box((0.22, 0.16, 0.08), loc=(0, -0.34, 1.02), material=body, bevel=0.01)
+    for sx in (-0.06, 0.0, 0.06):
+        box((0.03, 0.03, 0.05), loc=(sx, -0.4, 1.08), material=bone, bevel=0)
     eye = mat("eye", (1, 0.2, 0.25), emission=(1.0, 0.18, 0.25), strength=18)
     ball(0.035, loc=(-0.07, -0.4, 1.2), material=eye)
     ball(0.035, loc=(0.07, -0.4, 1.2), material=eye)
-    # arms reaching forward (toward the line)
+    # arms reaching forward, one longer, with claw fingers
     arm = mat("husk_arm", HUSK, roughness=0.8)
-    cyl(0.06, 0.55, loc=(-0.28, -0.32, 0.95), rot=(math.radians(-80), 0, 0), material=arm)
-    cyl(0.06, 0.55, loc=(0.28, -0.3, 0.9), rot=(math.radians(-80), 0, 0), material=arm)
+    cyl(0.06, 0.6, loc=(-0.28, -0.34, 0.95), rot=(math.radians(-80), 0, 0), material=arm)
+    cyl(0.06, 0.5, loc=(0.28, -0.3, 0.9), rot=(math.radians(-80), 0, 0), material=arm)
+    for sx, sy, sz in ((-0.28, -0.64, 1.0), (0.28, -0.55, 0.94)):
+        for k in (-0.04, 0.0, 0.04):
+            cyl(0.012, 0.1, loc=(sx + k, sy - 0.05, sz), rot=(math.radians(-80), 0, 0), material=bone, bevel=0)
 
 
 def runner(frame):
     stride = 0.26 if frame == 0 else -0.26
     legs(0, stride, r=0.06, h=0.7, color=(0.45, 0.36, 0.26), spread=0.1, z=0.35)
     body = mat("runner", RUNNER, roughness=0.75)
-    # leaning hard forward
+    bone = mat("rbone", (0.82, 0.84, 0.72), roughness=0.7)
+    # gaunt, leaning hard forward; spine ridge along the back
     ball(0.22, loc=(0, -0.12, 0.95), material=body, scale=(0.9, 1.4, 1.0))
+    for i in range(4):
+        ball(0.035, loc=(0, 0.1 - i * 0.1, 1.05 + i * 0.03), material=bone)
     ball(0.15, loc=(0, -0.42, 1.12), material=body)
+    # hair tufts and a snarl
+    hair = mat("hair", (0.16, 0.12, 0.1), roughness=0.9)
+    for k in (-0.08, 0.0, 0.08):
+        cone(0.04, 0.0, 0.16, loc=(k, -0.36, 1.28), rot=(math.radians(-20), 0, 0), material=hair)
+    box((0.14, 0.1, 0.05), loc=(0, -0.54, 1.04), material=bone, bevel=0)
     eye = mat("reye", (1, 0.2, 0.25), emission=(1.0, 0.18, 0.25), strength=18)
     ball(0.03, loc=(-0.05, -0.56, 1.14), material=eye)
     ball(0.03, loc=(0.05, -0.56, 1.14), material=eye)
+    # arms swinging opposite the legs, with long claws
     arm = mat("rarm", RUNNER, roughness=0.75)
-    cyl(0.045, 0.5, loc=(-0.2, -0.1 - stride * 0.6, 0.95), rot=(math.radians(-60), 0, 0), material=arm)
-    cyl(0.045, 0.5, loc=(0.2, -0.1 + stride * 0.6, 0.95), rot=(math.radians(-60), 0, 0), material=arm)
+    for sx, sw in ((-0.2, -stride * 0.6), (0.2, stride * 0.6)):
+        cyl(0.045, 0.5, loc=(sx, -0.1 + sw, 0.95), rot=(math.radians(-60), 0, 0), material=arm)
+        for k in (-0.03, 0.0, 0.03):
+            cyl(0.01, 0.14, loc=(sx + k, -0.35 + sw, 0.75), rot=(math.radians(-60), 0, 0), material=bone, bevel=0)
 
 
 def brute(frame):
@@ -348,43 +398,124 @@ def brute(frame):
     legs(0, stride, r=0.16, h=0.7, color=BRUTE_D, spread=0.3, z=0.35)
     body = mat("brute", BRUTE, roughness=0.7)
     plate = mat("plate", BRUTE_D, metallic=0.3, roughness=0.5)
+    rivet = mat("rivet", (0.55, 0.5, 0.62), metallic=0.8, roughness=0.35)
+    crack = mat("crack", (1, 0.4, 0.6), emission=(1.0, 0.3, 0.55), strength=10)
     box((1.1, 0.7, 0.9), loc=(0, 0, 1.15), material=body)
     box((1.2, 0.2, 0.6), loc=(0, 0.36, 1.25), material=plate)   # back plate
+    for sx in (-0.45, -0.15, 0.15, 0.45):
+        ball(0.04, loc=(sx, 0.47, 1.5), material=rivet)
+        ball(0.04, loc=(sx, 0.47, 1.0), material=rivet)
     box((0.5, 0.2, 0.3), loc=(0, -0.38, 1.3), material=plate)   # chest strap
+    box((0.06, 0.04, 0.5), loc=(0.2, -0.37, 1.1), material=crack, bevel=0)   # a glowing crack down the chest
+    # chain across the shoulder
+    for i in range(7):
+        ball(0.045, loc=(-0.6 + i * 0.2, -0.3 + abs(i - 3) * 0.02, 1.62 - abs(i - 3) * 0.05), material=rivet)
     ball(0.24, loc=(0, -0.3, 1.75), material=body)
+    # crest of horns on the skull
+    for k in (-0.1, 0.0, 0.1):
+        cone(0.05, 0.0, 0.22, loc=(k, -0.24, 2.02), rot=(math.radians(-15), 0, 0), material=plate)
     eye = mat("beye", (1, 0.35, 0.4), emission=(1.0, 0.3, 0.35), strength=20)
     ball(0.045, loc=(-0.08, -0.52, 1.78), material=eye)
     ball(0.045, loc=(0.08, -0.52, 1.78), material=eye)
-    # shoulder pauldrons and huge arms
-    ball(0.3, loc=(-0.65, 0, 1.5), material=plate)
-    ball(0.3, loc=(0.65, 0, 1.5), material=plate)
-    cyl(0.16, 0.9, loc=(-0.72, -0.2, 0.95), rot=(math.radians(-15), 0, 0), material=body)
-    cyl(0.16, 0.9, loc=(0.72, -0.2, 0.95), rot=(math.radians(-15), 0, 0), material=body)
-    ball(0.22, loc=(-0.72, -0.35, 0.5), material=plate)
-    ball(0.22, loc=(0.72, -0.35, 0.5), material=plate)
+    # shoulder pauldrons with spikes, and huge arms with knuckle plates
+    for sx in (-1, 1):
+        ball(0.3, loc=(sx * 0.65, 0, 1.5), material=plate)
+        cone(0.06, 0.0, 0.25, loc=(sx * 0.75, 0, 1.78), material=plate)
+        cyl(0.16, 0.9, loc=(sx * 0.72, -0.2, 0.95), rot=(math.radians(-15), 0, 0), material=body)
+        ball(0.22, loc=(sx * 0.72, -0.35, 0.5), material=plate)
+        for k in (-0.08, 0.0, 0.08):
+            ball(0.05, loc=(sx * 0.72 + k, -0.55, 0.5), material=rivet)
 
 
 def walker():
     # The mech: a domed turret on a stout hull with four legs, frozen mid-step.
     hull = mat("hull", OLIVE, metallic=0.35, roughness=0.5)
     dark = mat("hull_d", OLIVE_D, metallic=0.4, roughness=0.45)
+    rivet = mat("wrivet", (0.55, 0.6, 0.5), metallic=0.8, roughness=0.35)
     box((2.6, 2.2, 0.9), loc=(0, 0, 1.55), material=hull, bevel=0.05)
+    for sx in (-1.1, -0.55, 0.0, 0.55, 1.1):
+        ball(0.05, loc=(sx, -1.12, 1.85), material=rivet)
+        ball(0.05, loc=(sx, -1.12, 1.25), material=rivet)
+    box((2.0, 0.3, 0.25), loc=(0, -1.0, 1.55), material=dark, bevel=0.03)   # front plate
     ball(1.05, loc=(0, 0, 2.15), material=hull, scale=(1, 1, 0.7))
+    cyl(0.5, 0.2, loc=(0, 0, 2.85), material=dark)                            # hatch ring
+    cyl(0.03, 1.2, loc=(0.6, 0.3, 3.4), material=dark, bevel=0)               # antenna
+    ball(0.06, loc=(0.6, 0.3, 4.0), material=mat("beacon", (1, 0.3, 0.2), emission=(1.0, 0.25, 0.15), strength=20))
     cyl(0.22, 2.4, loc=(0, -1.4, 2.25), rot=(math.radians(90), 0, 0), material=dark)   # barrel, down the lane
     cyl(0.34, 0.5, loc=(0, -0.55, 2.25), rot=(math.radians(90), 0, 0), material=dark)
+    cyl(0.28, 0.12, loc=(0, -2.6, 2.25), rot=(math.radians(90), 0, 0), material=dark)  # muzzle brake
+    lens = mat("lens", (1, 0.5, 0.2), emission=(1.0, 0.45, 0.15), strength=12)
+    for sx in (-0.45, 0.45):
+        ball(0.12, loc=(sx, -0.95, 2.4), material=lens)
     vent = mat("vent", (0.9, 0.4, 0.15), emission=(1.0, 0.45, 0.15), strength=6)
     for x in (-0.7, 0.7):
         box((0.5, 0.12, 0.3), loc=(x, 1.12, 1.7), material=vent)
     for sx in (-1, 1):
         for sy, lift in ((-0.8, 0.0), (0.8, 0.25)):
             cyl(0.18, 1.6, loc=(sx * 1.6, sy, 1.0 + lift), rot=(0, math.radians(sx * 28), 0), material=dark)
+            ball(0.22, loc=(sx * 1.2, sy, 1.6 + lift), material=hull)                # hip joint
             cyl(0.16, 1.1, loc=(sx * 2.05, sy, 0.45 + lift), material=dark)
             ball(0.24, loc=(sx * 2.05, sy, 0.1 + lift), material=hull)
-    # The ice: a beveled block with glass-like transmission around the mech.
+    # The ice: a beveled block with glass-like transmission around the mech,
+    # a frost cap, and a few inner planes so the light breaks up inside.
     ice = mat("ice", (0.80, 0.95, 1.0), metallic=0.0, roughness=0.04, transmission=0.96, ior=1.25)
     box((4.8, 3.4, 3.5), loc=(0, 0, 1.75), material=ice, bevel=0.22)
     frost = mat("frost", (0.86, 0.97, 1.0), roughness=0.9, alpha=0.35)
     box((4.82, 3.42, 0.4), loc=(0, 0, 3.35), material=frost, bevel=0.1)
+    facet = mat("facet", (0.9, 0.98, 1.0), roughness=0.3, alpha=0.18)
+    box((0.02, 2.4, 2.6), loc=(-1.4, 0.2, 1.8), rot=(0, math.radians(12), math.radians(20)), material=facet, bevel=0)
+    box((0.02, 2.0, 2.2), loc=(1.5, -0.3, 1.6), rot=(0, math.radians(-15), math.radians(-30)), material=facet, bevel=0)
+
+
+def colossus(frame):
+    """The giant in the bay: a chained stone titan. Faces up the lane once
+    unchained; walk frames swing the arms and legs."""
+    stride = 0.5 if frame == 0 else -0.5
+    stone = mat("stone", (0.42, 0.44, 0.50), roughness=0.85)
+    dark = mat("stone_d", (0.26, 0.27, 0.33), roughness=0.9)
+    moss = mat("moss", (0.30, 0.42, 0.30), roughness=0.95)
+    glow = mat("cglow", (0.5, 0.9, 1.0), emission=(0.45, 0.85, 1.0), strength=16)
+    iron = mat("cchain", (0.28, 0.3, 0.36), metallic=0.8, roughness=0.4)
+    # legs and feet
+    for sx, sy in ((-0.7, stride), (0.7, -stride)):
+        cyl(0.42, 2.2, loc=(sx, sy, 1.1), verts=10, material=stone, bevel=0.02)
+        box((0.95, 1.3, 0.5), loc=(sx, sy + 0.25, 0.25), material=dark, bevel=0.04)
+        ball(0.5, loc=(sx, sy, 2.2), material=stone)
+    # torso, pelvis, chest plates
+    box((2.6, 1.6, 2.6), loc=(0, 0, 3.6), material=stone, bevel=0.08)
+    box((2.0, 1.4, 0.9), loc=(0, 0, 2.4), material=dark, bevel=0.05)
+    box((2.8, 0.4, 1.4), loc=(0, 0.8, 4.0), material=dark, bevel=0.05)   # back slab (faces camera)
+    for sx in (-0.8, 0.0, 0.8):
+        box((0.5, 0.2, 1.2), loc=(sx, 0.95, 4.0), material=moss, bevel=0.02)
+    # core seam glowing through the chest and back
+    box((0.12, 1.9, 1.6), loc=(0, 0, 3.6), material=glow, bevel=0)
+    # shoulders and arms, swinging opposite the legs
+    for sx, sw in ((-1, -stride * 0.7), (1, stride * 0.7)):
+        ball(0.75, loc=(sx * 1.7, 0, 4.7), material=stone)
+        cyl(0.42, 2.4, loc=(sx * 1.9, sw, 3.2), verts=10, rot=(math.radians(sw * 30), 0, 0), material=stone, bevel=0.02)
+        ball(0.6, loc=(sx * 1.95, sw * 1.6, 1.9), material=dark)
+    # head: a helm-like block with glowing eye slit
+    box((1.2, 1.1, 1.1), loc=(0, 0, 5.6), material=stone, bevel=0.06)
+    box((0.9, 0.2, 0.12), loc=(0, 0.6, 5.7), material=glow, bevel=0)
+    cone(0.3, 0.0, 0.6, loc=(0, 0, 6.4), material=dark)
+    # broken chain links still hanging from the wrists
+    for sx in (-1, 1):
+        for i in range(4):
+            ball(0.12, loc=(sx * 2.2, (stride * 0.7 * sx if False else 0) + 0.1 * i, 1.5 - i * 0.28), material=iron)
+
+
+def wheel():
+    """The bay's valve wheel: a spoked iron wheel on a stem, seen from above."""
+    iron = mat("wiron", (0.55, 0.16, 0.14), metallic=0.6, roughness=0.45)
+    dark = mat("wiron_d", (0.2, 0.2, 0.24), metallic=0.7, roughness=0.4)
+    cyl(0.5, 0.25, loc=(0, 0, 0.12), verts=8, material=dark)
+    cyl(0.18, 0.9, loc=(0, 0, 0.6), material=dark)
+    bpy.ops.mesh.primitive_torus_add(major_radius=0.95, minor_radius=0.1, location=(0, 0, 1.05), major_segments=40, minor_segments=10)
+    finish(bpy.context.object, iron, 0, smooth=True)
+    for i in range(6):
+        a = i * math.tau / 6
+        cyl(0.06, 1.8, loc=(0, 0, 1.05), rot=(math.radians(90), 0, a), material=iron, bevel=0)
+    ball(0.22, loc=(0, 0, 1.05), material=dark)
 
 
 def sentinel():
@@ -451,19 +582,22 @@ def lamp():
 
 PARTS = {
     # name: (builder, resolution, ortho span, note)
-    "soldier_0": (lambda: soldier(0), 128, 2.1, "faces up the lane; walk frame A"),
-    "soldier_1": (lambda: soldier(1), 128, 2.1, "faces up the lane; walk frame B"),
+    "soldier_0": (lambda: soldier(0), 160, 2.1, "faces up the lane; walk frame A"),
+    "soldier_1": (lambda: soldier(1), 160, 2.1, "faces up the lane; walk frame B"),
     "muzzle":    (muzzle, 64, 1.4, "additive flash, drawn at the rifle tip"),
-    "husk_0":    (lambda: husk(0), 128, 2.1, "faces down the lane; walk frame A"),
-    "husk_1":    (lambda: husk(1), 128, 2.1, "faces down the lane; walk frame B"),
-    "runner_0":  (lambda: runner(0), 128, 2.1, "faces down the lane; sprint frame A"),
-    "runner_1":  (lambda: runner(1), 128, 2.1, "faces down the lane; sprint frame B"),
-    "brute_0":   (lambda: brute(0), 192, 3.1, "faces down the lane; walk frame A"),
-    "brute_1":   (lambda: brute(1), 192, 3.1, "faces down the lane; walk frame B"),
+    "husk_0":    (lambda: husk(0), 160, 2.1, "faces down the lane; walk frame A"),
+    "husk_1":    (lambda: husk(1), 160, 2.1, "faces down the lane; walk frame B"),
+    "runner_0":  (lambda: runner(0), 160, 2.1, "faces down the lane; sprint frame A"),
+    "runner_1":  (lambda: runner(1), 160, 2.1, "faces down the lane; sprint frame B"),
+    "brute_0":   (lambda: brute(0), 224, 3.1, "faces down the lane; walk frame A"),
+    "brute_1":   (lambda: brute(1), 224, 3.1, "faces down the lane; walk frame B"),
     "walker":    (walker, 512, 6.4, "the frozen walker; ground point at centre"),
     "lamp":      (lamp, 96, 3.2, "rail lamp post"),
     "sentinel":  (sentinel, 192, 4.2, "ally walker; faces up the lane; ground point at centre"),
     "frostlamp": (frostlamp, 160, 6.4, "ally lantern; ground point at centre"),
+    "colossus_0": (lambda: colossus(0), 320, 9.0, "the giant; faces up the lane; walk frame A"),
+    "colossus_1": (lambda: colossus(1), 320, 9.0, "the giant; faces up the lane; walk frame B"),
+    "wheel":     (wheel, 96, 2.6, "the bay's valve wheel, seen from above; rotate to spin"),
 }
 
 

@@ -40,6 +40,18 @@ export const HELPERS = [
 ];
 export const helpersFor = save => HELPERS.filter(h => save.level > h.clear);
 
+/* The bay: a side platform on the left of the bridge with a valve wheel.
+   The squad can step into it and shoot the wheel; every turn costs a slice
+   of the squad's fire, like a gate step, so the whole wheel takes about
+   WHEEL_SECONDS of fire at any squad size. Every second in the bay is a
+   second the lane is not covered. When the wheel opens, the colossus is
+   unchained and walks up the lane, and the horde answers with a surge. */
+export const WHEEL = Object.freeze({ turns: 152, seconds: 4.5, rearmAfter: 25, rearmMul: 2 });
+export const wheelStepFor = (stats, weapon, count) =>
+  gateStepFor(stats, weapon, count) * (WHEEL.seconds / WHEEL.turns) / GATE_STEP_SECONDS;
+export const COLOSSUS = Object.freeze({ speed: 42, stomp: 0.7, dmg: 30, radius: 72, riseTime: 1.2 });
+export const SURGE = Object.freeze({ duration: 16, intervalMul: 0.45, sizeMul: 2, sizeCap: 64 });
+
 export const cost = (u, rank) => Math.round(u.base * Math.pow(1.35, rank));
 
 export function statsFor(save) {
@@ -80,10 +92,12 @@ export function packKind(level, r) {
   if (level >= ENEMIES.runner.from && r < 0.38) return 'runner';
   return 'husk';
 }
-export function packSize(kind, level, r) {
-  if (kind === 'brute') return level >= 6 ? 2 : 1;
-  if (kind === 'runner') return Math.min(24, 6 + Math.floor(r * 6) + level);
-  return Math.min(44, 4 + Math.floor(r * 5) + level * 2);
+export function packSize(kind, level, r, surge = false) {
+  let n;
+  if (kind === 'brute') n = level >= 6 ? 2 : 1;
+  else if (kind === 'runner') n = Math.min(24, 6 + Math.floor(r * 6) + level);
+  else n = Math.min(44, 4 + Math.floor(r * 5) + level * 2);
+  return surge ? Math.min(SURGE.sizeCap, n * SURGE.sizeMul) : n;
 }
 export const packInterval = t => 2.4 - 1.1 * Math.min(1, t / RUN_T);
 export const GATE_INTERVAL = 5;

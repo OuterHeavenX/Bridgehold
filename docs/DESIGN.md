@@ -121,6 +121,31 @@ of the curve, and play will move the constants.
   two thirds speed, drawn as a cold band across the deck.
 - Both are rows in `HELPERS` in the balance module, tested to be earned by clears only.
 
+## Pass 5, shipped: the bay, the giant, and the second look
+
+- **Every character remodelled** at higher resolution. Soldiers gained boots, knee pads,
+  belt pouches, shoulder straps, a hazard stripe, a bedroll, a radio antenna, a helmet
+  brim and a lit visor, gloves, and a rifle with magazine, stock and sight. Husks gained
+  torn coat panels, exposed ribs, a hanging jaw with teeth, one longer arm and claws.
+  Runners gained a spine ridge, hair tufts, a snarl and long claws. Brutes gained
+  riveted plates, a shoulder chain, a glowing crack down the chest, a horn crest and
+  spiked pauldrons with knuckle plates. The walker gained rivets, a front plate, a hatch
+  ring, an antenna with a beacon, twin lenses, a muzzle brake, hip joints, and inner
+  facets in the ice.
+- **The bay.** The lane narrowed to make room for a side platform on the left with a
+  valve wheel and a chained stone giant. Steering all the way left snaps the squad into
+  the bay, where its formation narrows to four across and its fire goes into the wheel.
+  The wheel costs about 4.5 seconds of the squad's own fire, tested at any size, and
+  every second there is a second the lane is uncovered. That is the whole decision.
+- **The colossus.** When the wheel opens the giant rises out of the bay, crosses to the
+  lane centre and walks up it, stomping every 0.7 seconds for thirty soldier shots in a
+  72-pixel ring, including into the walker. The wheel seals for 25 seconds and re-arms at
+  double the count.
+- **The surge.** The horde answers the giant: packs come twice as big and at less than
+  half the interval for sixteen seconds, under a red pulse and a countdown pill. The
+  giant is on the lane for most of it, so the surge is a harvest for a squad that holds
+  and a wipe for one that does not.
+
 ## What comes next
 
 - **More allies.** A third flank is not available, so later allies should replace or

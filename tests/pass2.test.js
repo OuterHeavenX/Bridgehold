@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import {
   DEFAULT_SAVE, ENEMIES, WEAPONS, SQUAD_CAP, MUL_GAIN_CAP, HELPERS, helpersFor, UPGRADES,
   packKind, packSize, weaponDps, gateHalf, hitGate, applyGate, recordRun, gateStepFor, GATE_STEP_SECONDS, statsFor,
+  WHEEL, wheelStepFor, COLOSSUS, SURGE,
 } from '../src/balance.js';
 
 const fresh = () => ({ ...DEFAULT_SAVE, up: { ...DEFAULT_SAVE.up }, levels: {}, settings: { ...DEFAULT_SAVE.settings } });
@@ -128,4 +129,24 @@ test('allies are earned by clearing levels and never by rank', () => {
   assert.deepEqual(helpersFor(s).map(h => h.k), ['sentinel', 'frost']);
   assert.notEqual(HELPERS[0].side, HELPERS[1].side, 'each ally takes its own flank');
   assert.ok(HELPERS[0].clear < HELPERS[1].clear);
+});
+
+test('the wheel takes about four and a half seconds of fire at any squad size', () => {
+  const st = statsFor(fresh());
+  for (const count of [5, 40, 200]) {
+    const dps = st.dmg * count / st.interval;
+    const total = wheelStepFor(st, WEAPONS.rifle, count) * WHEEL.turns;
+    assert.ok(Math.abs(total / dps - WHEEL.seconds) < 1e-9, 'squad ' + count);
+  }
+  assert.equal(WHEEL.turns, 152);
+  assert.ok(WHEEL.rearmMul > 1 && WHEEL.rearmAfter > SURGE.duration, 'the wheel re-arms after the surge has passed');
+});
+
+test('the surge doubles packs under a cap, and the colossus outlasts it on the lane', () => {
+  assert.equal(packSize('husk', 3, 0.5, true), packSize('husk', 3, 0.5) * SURGE.sizeMul);
+  assert.equal(packSize('husk', 30, 0.99, true), SURGE.sizeCap);
+  assert.ok(SURGE.intervalMul < 0.5);
+  const laneTime = (548 + 160) / COLOSSUS.speed;
+  assert.ok(laneTime > SURGE.duration * 0.8, 'the giant is on the lane for most of the surge');
+  assert.ok(COLOSSUS.dmg * 1 >= 20, 'a stomp is worth at least twenty soldier shots');
 });

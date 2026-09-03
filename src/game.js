@@ -1,12 +1,15 @@
 import {
   RUN_T, LINE_Y, DEFAULT_SAVE, UPGRADES, UNLOCKS, ENEMIES, WEAPONS, BOSS, HELPERS,
   cost, statsFor, huskHP, bossHP, bossReward, clearBonus, coinPerKill,
-  packKind, packSize, packInterval, GATE_INTERVAL, gateStepFor, gateHalf, helpersFor, hitGate, gateValue, applyGate, recordRun,
+  packKind, packSize, packInterval, GATE_INTERVAL, gateStepFor, gateHalf, helpersFor,
+  WHEEL, wheelStepFor, COLOSSUS, SURGE, hitGate, gateValue, applyGate, recordRun,
 } from './balance.js';
 import { createAudio } from './audio.js';
 import { loadArt } from './art.js';
 
-const W = 360, H = 640, LANE_L = 34, LANE_R = 326;
+const W = 360, H = 640, LANE_L = 96, LANE_R = 326;
+// The bay: a side platform left of the bridge, holding the valve wheel and the chained giant.
+const BAY = { x0: 10, x1: 84, cx: 47, top: 226, wheelY: 286, giantY: 470 };
 const cv = document.getElementById('cv');
 const ctx = cv.getContext('2d');
 const osReduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -14,7 +17,7 @@ const $ = id => document.getElementById(id);
 
 // Game pixels per Blender unit, per sprite family. The walker is drawn at a
 // larger scale on purpose: it is meant to be monumental.
-const PPU = { unit: 14, brute: 16, walker: 45, lamp: 11, sentinel: 17, frostlamp: 19 };
+const PPU = { unit: 14, brute: 16, walker: 45, lamp: 11, sentinel: 17, frostlamp: 19, colossus: 22, wheel: 14 };
 const FLANK = { l: LANE_L + 30, r: LANE_R - 30, y: LINE_Y + 44 };
 let art = null;
 loadArt().then(pack => { art = pack; document.body.classList.toggle('has-art', !!pack); });
@@ -123,6 +126,8 @@ function startRun() {
     kills: 0, coins: 0, shake: 0, over: 0, won: false, endT: 0, flash: 0, wpnT: 0,
     bossDmg: 0, bossDmgT: 0, tagPulse: 0,
     helpers: helpersFor(save), shells: [], shellT: 0.9,
+    wheel: { need: WHEEL.turns, left: WHEEL.turns, spin: 0, hitT: 0, rearmT: 0, releases: 0 },
+    colossus: null, surge: 0, surgeBanner: 0,
   };
   G.frost = G.helpers.find(h => h.k === 'frost') || null;
   showScreen(null);
@@ -133,7 +138,7 @@ function startRun() {
 const rnd = (a, b) => a + Math.random() * (b - a);
 function spawnPack() {
   const kind = packKind(G.level, Math.random()), E = ENEMIES[kind];
-  const size = packSize(kind, G.level, Math.random());
+  const size = packSize(kind, G.level, Math.random(), G.surge > 0);
   const hp = huskHP(G.level, G.t) * E.hp, spd = (rnd(52, 76) + G.level * 2.5) * E.speed;
   const pack = { units: [], kind };
   const unit = (x, y) => ({ x, y, hp, max: hp, vy: spd * rnd(0.92, 1.08), wob: rnd(0, 6.28), pack, kind, r: E.r, chewT: 0, parked: false, hurt: 0 });
@@ -193,11 +198,12 @@ function burst(x, y, color, n, speed = 160) {
   }
   if (G.parts.length > 400) G.parts.splice(0, G.parts.length - 400);
 }
+const inBay = cx => cx < LANE_L - 4;
 function formation(count, cx) {
-  const n = Math.min(count, 24), per = 6, pts = [];
+  const bay = inBay(cx), n = Math.min(count, bay ? 16 : 24), per = bay ? 4 : 6, gap = bay ? 16 : 20, pts = [];
   for (let i = 0; i < n; i++) {
     const row = Math.floor(i / per), inRow = Math.min(per, n - row * per), col = i - row * per;
-    pts.push({ x: cx + (col - (inRow - 1) / 2) * 20, y: LINE_Y + row * 17 });
+    pts.push({ x: cx + (col - (inRow - 1) / 2) * gap, y: LINE_Y + row * 17 });
   }
   return pts;
 }
@@ -237,6 +243,15 @@ function shellTarget() {
   for (const p of packs.values()) if (!best || p.hp > best.hp) best = p;
   return best ? { x: best.sx / best.n, y: best.sy / best.n } : null;
 }
+/* The wheel opens: the giant rises out of the bay, and the horde answers. */
+function unchain() {
+  const w = G.wheel; w.releases++; w.rearmT = WHEEL.rearmAfter;
+  G.colossus = { x: BAY.cx, y: BAY.giantY, t: 0, wob: 0, phase: 'rise', stompT: 0, foot: 0 };
+  G.surge = SURGE.duration; G.surgeBanner = 2.2;
+  burst(BAY.cx, BAY.giantY - 40, '#9aa3b4', 30, 240); G.shake = 8;
+  float(W / 2, 150, 'UNCHAINED', '#bdf3ff', 34);
+  audio.shatter(); audio.thump();
+}
 function breakLine() {
   if (G.over) return;
   G.over = 1; G.won = false; G.endT = 0; G.shake = 8;
@@ -271,17 +286,20 @@ function update(dt) {
   if (G.over === 0) {
     if (pointerX !== null) G.tx = pointerX;
     const k = (keys.ArrowRight || keys.KeyD ? 1 : 0) - (keys.ArrowLeft || keys.KeyA ? 1 : 0);
-    if (k) { G.tx = G.cx + k * 320 * dt; pointerX = null; }
-    const half = (Math.min(G.count, 6) - 1) / 2 * 20 + 10;
-    G.tx = Math.max(LANE_L + half, Math.min(LANE_R - half, G.tx));
-    G.cx += (G.tx - G.cx) * Math.min(1, dt * 14);
+    if (k) { G.tx += k * 320 * dt; pointerX = null; }
+    const half = (Math.min(G.count, 6) - 1) / 2 * 20 + 10, edge = LANE_L + half;
+    G.tx = Math.max(BAY.cx, Math.min(LANE_R - half, G.tx));
+    // the lane, or the bay: the squad cannot stand in the gap, so a target in
+    // it resolves to whichever side is nearer and the squad crosses in one move
+    const goal = G.tx < edge ? (G.tx < (BAY.cx + edge) / 2 ? BAY.cx : edge) : G.tx;
+    G.cx += (goal - G.cx) * Math.min(1, dt * (inBay(goal) !== inBay(G.cx) ? 6 : 14));
   }
 
   // spawns
   if (G.over === 0 && !G.boss) {
     if (G.t < RUN_T) {
       G.packT -= dt;
-      if (G.packT <= 0) { spawnPack(); G.packT = packInterval(G.t); }
+      if (G.packT <= 0) { spawnPack(); G.packT = packInterval(G.t) * (G.surge > 0 ? SURGE.intervalMul : 1); }
       G.gateT -= dt;
       if (G.gateT <= 0) { spawnGate(); G.gateT = GATE_INTERVAL; }
     } else spawnBoss();
@@ -297,7 +315,17 @@ function update(dt) {
   for (let bi = G.bullets.length - 1; bi >= 0; bi--) {
     const b = G.bullets[bi];
     b.x += b.vx * dt; b.y += b.vy * dt;
-    let dead = b.y < -20 || b.x < LANE_L - 6 || b.x > LANE_R + 6;
+    const bayShot = b.x < LANE_L - 4;
+    let dead = b.y < -20 || b.x < BAY.x0 - 6 || b.x > LANE_R + 6 || (bayShot && b.y < BAY.top - 10);
+    // the wheel: a shot in the bay column turns it
+    if (!dead && bayShot && G.wheel.left > 0 && G.wheel.rearmT <= 0 && Math.abs(b.y - BAY.wheelY) < 22 && Math.abs(b.x - BAY.cx) < 24) {
+      const w = G.wheel, step = wheelStepFor(G.st, WEAPONS[G.weapon], Math.max(1, G.count));
+      w.acc = (w.acc || 0) + b.dmg;
+      while (w.acc >= step && w.left > 0) { w.acc -= step; w.left--; w.spin += 0.35; }
+      w.hitT = 0.1; dead = true;
+      audio.ping(w.left % 10);
+      if (w.left <= 0) unchain();
+    }
     // gates: the bullet passes through and nudges the half it crossed, once
     if (!dead) for (const g of G.gates) {
       if (g.applied || b.gate === g || Math.abs(b.y - g.y) > 16) continue;
@@ -427,6 +455,38 @@ function update(dt) {
         h.hp -= sh.dmg; h.hurt = 0.1;
         if (h.hp <= 0) killHusk(h, hi);
       }
+    }
+  }
+
+  // the colossus and the surge
+  if (G.surge > 0) G.surge -= dt;
+  if (G.surgeBanner > 0) G.surgeBanner -= dt;
+  if (G.wheel.rearmT > 0) { G.wheel.rearmT -= dt; if (G.wheel.rearmT <= 0) { G.wheel.need = Math.round(G.wheel.need * WHEEL.rearmMul); G.wheel.left = G.wheel.need; G.wheel.acc = 0; float(BAY.cx, BAY.wheelY - 30, 'REARMED', '#ffb640', 14); } }
+  if (G.colossus) {
+    const c = G.colossus; c.t += dt; c.wob += dt;
+    if (c.phase === 'rise') {
+      const k = Math.min(1, c.t / COLOSSUS.riseTime);
+      c.x = BAY.cx + (W / 2 - BAY.cx) * (1 - Math.pow(1 - k, 2));
+      if (k >= 1) { c.phase = 'walk'; c.stompT = 0.2; }
+    } else {
+      c.y -= COLOSSUS.speed * dt;
+      c.stompT -= dt;
+      if (c.stompT <= 0) {
+        c.stompT = COLOSSUS.stomp; c.foot = 1 - c.foot;
+        const fx = c.x + (c.foot ? -26 : 26), fy = c.y - 10, dmg = G.st.dmg * COLOSSUS.dmg, r2 = COLOSSUS.radius * COLOSSUS.radius;
+        burst(fx, fy, '#9aa3b4', 18, 200); G.shake = Math.max(G.shake, 4); audio.thump();
+        for (let hi = G.husks.length - 1; hi >= 0; hi--) {
+          const h = G.husks[hi], dx = h.x - fx, dy = h.y - fy;
+          if (dx * dx + dy * dy > r2) continue;
+          h.hp -= dmg; h.hurt = 0.1; if (h.hp <= 0) killHusk(h, hi);
+        }
+        if (G.boss && G.boss.hp > 0 && Math.abs(fx - G.boss.x) < G.boss.w / 2 + 30 && Math.abs(fy - G.boss.y) < G.boss.h / 2 + 30) {
+          G.boss.hp = Math.max(0, G.boss.hp - dmg); G.boss.hitT = 0.1; G.bossDmg += dmg;
+          while (G.boss.hp > 0 && G.boss.hp / G.boss.max < G.boss.nextCrack) { addCrack(G.boss); G.boss.nextCrack -= 0.1; }
+          if (G.boss.hp <= 0) walkerDown();
+        }
+      }
+      if (c.y < -180) G.colossus = null;
     }
   }
 
@@ -749,6 +809,65 @@ function drawBullets() {
     }
   }
 }
+function drawBay() {
+  // stone platform over the water, with a low wall, a walkway into the lane and chains
+  ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.fillRect(BAY.x0 - 6, BAY.top + 6, BAY.x1 - BAY.x0 + 12, H - BAY.top);
+  ctx.fillStyle = '#2c3142'; ctx.fillRect(BAY.x0 - 4, BAY.top, BAY.x1 - BAY.x0 + 8, H - BAY.top);
+  ctx.fillStyle = '#3a3f50'; ctx.fillRect(BAY.x0, BAY.top + 6, BAY.x1 - BAY.x0, H - BAY.top);
+  ctx.fillStyle = 'rgba(0,0,0,.12)';
+  for (let y = BAY.top + 30; y < H; y += 26) ctx.fillRect(BAY.x0, y, BAY.x1 - BAY.x0, 1);
+  for (let x = BAY.x0 + 24; x < BAY.x1; x += 26) ctx.fillRect(x, BAY.top + 6, 1, H - BAY.top);
+  // the walkway: the rail opens between the bay and the lane at line height
+  ctx.fillStyle = '#3a3f50'; ctx.fillRect(BAY.x1, LINE_Y - 30, LANE_L - BAY.x1, 110);
+  ctx.fillStyle = 'rgba(255,214,120,.12)'; ctx.fillRect(BAY.x1, LINE_Y - 30, LANE_L - BAY.x1, 1); ctx.fillRect(BAY.x1, LINE_Y + 80, LANE_L - BAY.x1, 1);
+  // low wall on the outer edges, and chains hanging into the water
+  ctx.fillStyle = '#4c5568'; ctx.fillRect(BAY.x0 - 4, BAY.top, BAY.x1 - BAY.x0 + 8, 6); ctx.fillRect(BAY.x0 - 4, BAY.top, 5, H - BAY.top);
+  ctx.strokeStyle = 'rgba(160,170,190,.35)'; ctx.lineWidth = 2;
+  for (const x of [BAY.x0 + 8, BAY.x1 - 8]) { ctx.beginPath(); ctx.moveTo(x, BAY.top + 8); ctx.lineTo(x + (x < BAY.cx ? -10 : 10), BAY.top - 18); ctx.stroke(); }
+  // the wheel, its stem, and the count
+  const w = G.wheel, armed = w.rearmT <= 0 && w.left > 0;
+  ctx.save(); ctx.translate(BAY.cx, BAY.wheelY); ctx.rotate(w.spin);
+  if (!(art && art.draw(ctx, 'wheel', 0, 0, PPU.wheel))) {
+    ctx.strokeStyle = '#8b2a26'; ctx.lineWidth = 4; ctx.beginPath(); ctx.arc(0, 0, 16, 0, 6.28); ctx.stroke();
+    for (let i = 0; i < 6; i++) { ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(Math.cos(i * 1.047) * 16, Math.sin(i * 1.047) * 16); ctx.stroke(); }
+  }
+  ctx.restore();
+  if (w.hitT > 0) { w.hitT -= 0.016; ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = 'rgba(255,255,255,.35)'; ctx.beginPath(); ctx.arc(BAY.cx, BAY.wheelY, 20, 0, 6.28); ctx.fill(); ctx.restore(); }
+  const label = armed ? String(w.left) : w.rearmT > 0 ? Math.ceil(w.rearmT) + 's' : '0';
+  pill(BAY.cx - 26, BAY.wheelY + 24, 52, 24, armed ? '#c8302c' : 'rgba(8,12,24,.6)', 6);
+  strokeText(label, BAY.cx, BAY.wheelY + 37, 18, armed ? '#fff' : '#93a0ba');
+  ctx.font = '600 9px Barlow, sans-serif'; ctx.fillStyle = '#93a0ba'; ctx.textAlign = 'center';
+  ctx.fillText(armed ? 'SHOOT TO OPEN' : 'SEALED', BAY.cx, BAY.wheelY + 58);
+  // the chained giant, waiting
+  if (!G.colossus && w.releases === 0) drawGiant(BAY.cx, BAY.giantY, 0, 0.8, true);
+}
+function drawGiant(x, y, frame, alpha, chained) {
+  ctx.save(); ctx.globalAlpha = alpha;
+  ctx.fillStyle = 'rgba(0,0,0,.4)'; ctx.beginPath(); ctx.ellipse(x, y + 6, 34, 12, 0, 0, 6.28); ctx.fill();
+  if (!(art && art.draw(ctx, 'colossus_' + frame, x, y, PPU.colossus))) {
+    ctx.fillStyle = '#6b7080'; ctx.fillRect(x - 24, y - 110, 48, 100); ctx.fillRect(x - 16, y - 130, 32, 24);
+    ctx.fillStyle = '#bdf3ff'; ctx.fillRect(x - 2, y - 100, 4, 60);
+  }
+  if (chained) {
+    ctx.strokeStyle = 'rgba(190,200,220,.55)'; ctx.lineWidth = 2.5;
+    for (const [ax, ay, bx, by] of [[x - 30, y - 70, BAY.x0 + 2, y - 120], [x + 30, y - 70, BAY.x1 - 2, y - 120], [x - 20, y - 20, BAY.x0 + 2, y + 10], [x + 20, y - 20, BAY.x1 - 2, y + 10]]) {
+      ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.stroke();
+    }
+  }
+  ctx.restore();
+}
+function drawColossus() {
+  const c = G.colossus; if (!c) return;
+  const frame = c.phase === 'walk' ? Math.floor(c.wob * 1.4) % 2 : 0;
+  const bob = c.phase === 'walk' && !reduceMotion() ? Math.abs(Math.sin(c.wob * 4.4)) * 4 : 0;
+  drawGiant(c.x, c.y - bob, frame, 1, false);
+  // stomp ring
+  if (c.phase === 'walk' && c.stompT > COLOSSUS.stomp - 0.25) {
+    const k = (COLOSSUS.stomp - c.stompT) / 0.25, fx = c.x + (c.foot ? -26 : 26), fy = c.y - 10;
+    ctx.strokeStyle = `rgba(200,210,230,${0.6 * (1 - k)})`; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.arc(fx, fy, COLOSSUS.radius * (0.3 + 0.7 * k), 0, 6.28); ctx.stroke();
+  }
+}
 function drawAllies() {
   if (G.frost) {
     const band = ctx.createLinearGradient(0, LINE_Y - G.frost.band, 0, LINE_Y);
@@ -860,6 +979,21 @@ function drawHUD() {
   ctx.fillStyle = '#ffb640'; ctx.beginPath(); ctx.arc(W - 94, 31, 6, 0, 6.28); ctx.fill();
   ctx.fillStyle = '#b57a1c'; ctx.beginPath(); ctx.arc(W - 94, 31, 3, 0, 6.28); ctx.fill();
   ctx.font = F(700, 18); ctx.textAlign = 'right'; ctx.fillStyle = '#ffb640'; ctx.fillText(G.coins.toLocaleString(), W - 20, 32);
+  // surge
+  if (G.surge > 0) {
+    const pulse = reduceMotion() ? 0.5 : 0.5 + Math.sin(performance.now() / 160) * 0.5;
+    ctx.fillStyle = `rgba(255,77,94,${0.05 + pulse * 0.06})`; ctx.fillRect(0, 0, W, H);
+    pill(W / 2 - 44, 82, 88, 20, 'rgba(255,77,94,.25)', 10);
+    strokeText('SURGE ' + Math.ceil(G.surge), W / 2, 93, 12, '#ff8a96', 700, 'rgba(0,0,0,0)');
+  }
+  if (G.surgeBanner > 0) {
+    ctx.globalAlpha = Math.min(1, G.surgeBanner / 0.4);
+    pill(W / 2 - 130, 296, 260, 54, 'rgba(8,12,24,.8)', 12);
+    strokeText('THE HORDE ANSWERS', W / 2, 316, 22, '#ff4d5e', 700, 'rgba(0,0,0,0)');
+    ctx.font = 'italic 500 12px Barlow, sans-serif'; ctx.fillStyle = '#93a0ba'; ctx.textAlign = 'center';
+    ctx.fillText('twice the packs, twice as often, for ' + SURGE.duration + ' seconds', W / 2, 338);
+    ctx.globalAlpha = 1;
+  }
   // opening banner
   if (G.banner > 0) {
     const a = Math.min(1, G.banner / 0.4), rise = reduceMotion() ? 0 : (1 - Math.min(1, (1.6 - G.banner) / 0.3)) * 12;
@@ -882,10 +1016,12 @@ function draw() {
   if (G && G.shake > 0 && !reduceMotion()) ctx.translate(rnd(-G.shake, G.shake), rnd(-G.shake, G.shake));
   drawBridge();
   if (G) {
+    drawBay();
     for (const g of G.gates) drawGate(g);
     drawEnemies();
     drawBoss();
     drawAllies();
+    drawColossus();
     drawBullets();
     drawShells();
     for (const p of G.parts) {
@@ -946,7 +1082,7 @@ window.addEventListener('resize', setup);
 
 setup(); buildLayers(); renderHome(); showScreen('home');
 // ?debug exposes the live run for tuning scripts and headless bots.
-if (location.search.includes('debug')) window.bridgehold = { get run() { return G; }, get save() { return save; }, W, LINE_Y };
+if (location.search.includes('debug')) window.bridgehold = { get run() { return G; }, get save() { return save; }, W, LINE_Y, LANE_L, BAY };
 if (document.fonts && document.fonts.load) {
   Promise.all([document.fonts.load('700 40px "Chakra Petch"'), document.fonts.load('600 14px "Chakra Petch"')]).catch(() => {});
 }

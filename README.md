@@ -74,6 +74,15 @@ Two weapons are earned by play and cannot be bought:
 - **Piercing rounds** after clearing level 3. Each shot passes through one husk.
 - **Frag rounds** after clearing level 6. Hits splash nearby husks for half damage.
 
+**The bay.** Left of the bridge is a stone platform with a valve wheel and a chained
+giant. Steer the squad all the way left and it steps off the lane into the bay, where its
+fire goes into the wheel instead of the horde. The wheel takes about four and a half
+seconds of the squad's fire to open, at any squad size, and every one of those seconds
+the lane is uncovered. When it opens, the colossus is unchained and walks up the lane
+stomping everything within reach, and the horde answers: for sixteen seconds packs come
+twice as big and twice as often. The wheel seals for twenty-five seconds after, then
+re-arms at double the count.
+
 Two allies take the flanks of the line once earned, and are deployed on every run after:
 
 - **Sentinel** after clearing level 4. A walker of your own on the left flank that lobs a
