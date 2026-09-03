@@ -112,7 +112,7 @@ function startRun() {
     fireT: 0, packT: 2.6, gateT: 2.4, muzzleT: 0, banner: 1.6,
     bullets: [], husks: [], gates: [], boss: null, floats: [], parts: [],
     kills: 0, coins: 0, shake: 0, over: 0, won: false, endT: 0, flash: 0, wpnT: 0,
-    bossDmg: 0, bossDmgT: 0,
+    bossDmg: 0, bossDmgT: 0, tagPulse: 0,
   };
   showScreen(null);
   paused = false; last = performance.now();
@@ -165,7 +165,16 @@ function addCrack(b) {
 }
 
 // ---------- helpers ----------
-function float(x, y, txt, color, size) { G.floats.push({ x, y, txt, color, size: size || 18, t: 0 }); }
+const GATE_FADE = 0.42;
+function float(x, y, txt, color, size, opts = {}) { G.floats.push({ x, y, txt, color, size: size || 18, t: 0, pop: !!opts.pop, caption: opts.caption || null, life: opts.pop ? 1.5 : 1.1 }); }
+/* Glass shards from a broken gate half: thin rotated slivers in its colour. */
+function shards(x0, x1, y, color, n) {
+  for (let i = 0; i < n; i++) {
+    const x = rnd(x0, x1), up = rnd(-260, -60);
+    G.parts.push({ x, y: y + rnd(-14, 14), vx: rnd(-90, 90), vy: up, t: 0, life: rnd(0.45, 0.8), color, shard: true, len: rnd(5, 14), rot: rnd(0, 6.28), vr: rnd(-9, 9) });
+  }
+  if (G.parts.length > 400) G.parts.splice(0, G.parts.length - 400);
+}
 function burst(x, y, color, n, speed = 160) {
   for (let i = 0; i < n; i++) {
     const a = rnd(0, 6.28), s = rnd(40, speed);
@@ -336,14 +345,23 @@ function update(dt) {
     g.y += 100 * dt;
     if (g.l.hitT > 0) g.l.hitT -= dt;
     if (g.r.hitT > 0) g.r.hitT -= dt;
-    if (!g.applied && g.y + 16 >= LINE_Y && G.over === 0) {
-      g.applied = true;
-      const r = applyGate(G.count, G.cx < W / 2 ? g.l : g.r, G.st.gate);
+    if (g.applied) { g.fade -= dt; if (g.fade <= 0) G.gates.splice(gi, 1); continue; }
+    if (g.y + 16 >= LINE_Y && G.over === 0) {
+      g.applied = true; g.fade = GATE_FADE; g.side = G.cx < W / 2 ? 'l' : 'r';
+      const before = G.count;
+      const r = applyGate(G.count, g[g.side], G.st.gate);
       G.count = r.count;
+      const color = r.weapon ? '#ffb640' : r.good ? '#4da3ff' : '#ff4d5e';
       if (r.weapon) { G.weapon = r.weapon; G.wpnT = 1.6; audio.weapon(); }
       else if (r.good) audio.gateGood();
       else { G.flash = 0.25; audio.gateBad(); }
-      float(G.cx, LINE_Y - 30, r.gain !== undefined ? r.text + '  +' + r.gain : r.text, r.weapon ? '#ffb640' : r.good ? '#4da3ff' : '#ff4d5e', 26);
+      // the crossed half shatters; the bonus pops up where the squad is
+      const x0 = g.side === 'l' ? LANE_L + 2 : W / 2 + 3, x1 = g.side === 'l' ? W / 2 - 3 : LANE_R - 2;
+      shards(x0, x1, g.y, color, 22);
+      const delta = G.count - before;
+      const caption = r.weapon ? 'new weapon' : delta === 0 ? 'no change' : (delta > 0 ? '+' : '') + delta + (Math.abs(delta) === 1 ? ' soldier' : ' soldiers');
+      float(G.cx, LINE_Y - 54, r.text, color, 38, { pop: true, caption });
+      G.tagPulse = 0.35;
       if (G.count <= 0) breakLine();
     }
     if (g.y > H + 40) G.gates.splice(gi, 1);
@@ -362,9 +380,11 @@ function update(dt) {
     }
   }
 
-  for (let i = G.floats.length - 1; i >= 0; i--) { const f = G.floats[i]; f.t += dt; f.y -= 28 * dt; if (f.t > 1.1) G.floats.splice(i, 1); }
+  if (G.tagPulse > 0) G.tagPulse -= dt;
+  for (let i = G.floats.length - 1; i >= 0; i--) { const f = G.floats[i]; f.t += dt; f.y -= (f.pop ? 16 : 28) * dt; if (f.t > f.life) G.floats.splice(i, 1); }
   for (let i = G.parts.length - 1; i >= 0; i--) {
-    const p = G.parts[i]; p.t += dt; p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 180 * dt;
+    const p = G.parts[i]; p.t += dt; p.x += p.vx * dt; p.y += p.vy * dt; p.vy += (p.shard ? 420 : 180) * dt;
+    if (p.shard) p.rot += p.vr * dt;
     if (p.t > p.life) G.parts.splice(i, 1);
   }
 
@@ -522,8 +542,29 @@ function drawBridge() {
 }
 function drawGate(g) {
   const near = Math.max(0, 1 - Math.abs(LINE_Y - g.y) / 140);
-  const halves = [[g.l, LANE_L + 2, W / 2 - 3], [g.r, W / 2 + 3, LANE_R - 2]];
-  for (const [h, x0, x1] of halves) {
+  const halves = [[g.l, LANE_L + 2, W / 2 - 3, 'l'], [g.r, W / 2 + 3, LANE_R - 2, 'r']];
+  for (const [h, x0, x1, side] of halves) {
+    if (g.applied) {
+      // the crossed half flashes white, swells and dissolves; the other half drops away
+      const f = Math.max(0, g.fade / GATE_FADE), gone = 1 - f;
+      ctx.save();
+      const cx = (x0 + x1) / 2;
+      if (side === g.side) {
+        const sc = reduceMotion() ? 1 : 1 + gone * 0.22;
+        ctx.globalAlpha = f * f;
+        ctx.translate(cx, g.y); ctx.scale(sc, sc); ctx.translate(-cx, -g.y);
+        const isW = h.kind === 'weapon', eff = isW ? 0 : gateValue(h, G.st.gate), good = isW || h.kind === 'mul' || eff >= 0;
+        const rgb = isW ? '255,182,64' : good ? '77,163,255' : '255,77,94';
+        ctx.fillStyle = `rgba(${rgb},.55)`; ctx.beginPath(); ctx.roundRect(x0, g.y - 18, x1 - x0, 36, 5); ctx.fill();
+        ctx.fillStyle = `rgba(255,255,255,${0.85 * f})`; ctx.beginPath(); ctx.roundRect(x0, g.y - 18, x1 - x0, 36, 5); ctx.fill();
+      } else {
+        ctx.globalAlpha = f * 0.6;
+        ctx.translate(0, reduceMotion() ? 0 : gone * 26);
+        ctx.fillStyle = 'rgba(120,140,180,.35)'; ctx.beginPath(); ctx.roundRect(x0, g.y - 18, x1 - x0, 36, 5); ctx.fill();
+      }
+      ctx.restore();
+      continue;
+    }
     const isW = h.kind === 'weapon';
     const eff = isW ? 0 : gateValue(h, G.st.gate);
     const good = isW || h.kind === 'mul' || eff >= 0;
@@ -625,8 +666,11 @@ function drawSquad() {
   glow.addColorStop(0, 'rgba(255,190,100,.16)'); glow.addColorStop(1, 'rgba(255,190,100,0)');
   ctx.fillStyle = glow; ctx.fillRect(G.cx - 70, LINE_Y - 60, 140, 140);
   const y = LINE_Y + Math.ceil(Math.min(G.count, 24) / 6) * 17 + 12;
-  pill(G.cx - 32, y - 13, 64, 26, G.flash > 0 ? '#ff4d5e' : '#ffb640', 8);
-  strokeText(String(G.count), G.cx, y + 1, 20, '#1a1200', 700, 'rgba(0,0,0,0)');
+  const pulse = G.tagPulse > 0 && !reduceMotion() ? 1 + Math.sin((G.tagPulse / 0.35) * Math.PI) * 0.22 : 1;
+  ctx.save(); ctx.translate(G.cx, y); ctx.scale(pulse, pulse);
+  pill(-32, -13, 64, 26, G.flash > 0 ? '#ff4d5e' : '#ffb640', 8);
+  strokeText(String(G.count), 0, 1, 20, '#1a1200', 700, 'rgba(0,0,0,0)');
+  ctx.restore();
 }
 function drawBullets() {
   for (const b of G.bullets) {
@@ -732,10 +776,25 @@ function draw() {
     drawEnemies();
     drawBoss();
     drawBullets();
-    for (const p of G.parts) { ctx.globalAlpha = 1 - p.t / p.life; ctx.fillStyle = p.color; ctx.fillRect(p.x - 2, p.y - 2, 4, 4); }
+    for (const p of G.parts) {
+      ctx.globalAlpha = 1 - p.t / p.life; ctx.fillStyle = p.color;
+      if (p.shard) { ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot); ctx.fillRect(-p.len / 2, -1.5, p.len, 3); ctx.fillStyle = 'rgba(255,255,255,.6)'; ctx.fillRect(-p.len / 2, -1.5, p.len, 1); ctx.restore(); }
+      else ctx.fillRect(p.x - 2, p.y - 2, 4, 4);
+    }
     ctx.globalAlpha = 1;
     drawSquad();
-    for (const f of G.floats) { ctx.globalAlpha = 1 - Math.max(0, f.t - 0.6) / 0.5; strokeText(f.txt, f.x, f.y, f.size, f.color); }
+    for (const f of G.floats) {
+      ctx.globalAlpha = 1 - Math.max(0, f.t - (f.life - 0.5)) / 0.5;
+      if (f.pop) {
+        // lands big, settles, then drifts: scale 1.7 -> 1 over the first 0.18 s
+        const k = Math.min(1, f.t / 0.18), sc = reduceMotion() ? 1 : 1.7 - 0.7 * (1 - Math.pow(1 - k, 3));
+        ctx.save(); ctx.translate(f.x, f.y); ctx.scale(sc, sc);
+        pill(-f.size * 1.6, -f.size * 0.75, f.size * 3.2, f.size * 1.5, 'rgba(8,12,24,.55)', f.size * 0.4);
+        strokeText(f.txt, 0, 0, f.size, f.color);
+        ctx.restore();
+        if (f.caption) { ctx.font = '600 12px Barlow, sans-serif'; ctx.textAlign = 'center'; ctx.fillStyle = '#e9eef7'; ctx.fillText(f.caption.toUpperCase(), f.x, f.y + f.size * 0.95); }
+      } else strokeText(f.txt, f.x, f.y, f.size, f.color);
+    }
     ctx.globalAlpha = 1;
     if (G.flash > 0) { ctx.fillStyle = `rgba(255,77,94,${G.flash * 0.5})`; ctx.fillRect(0, 0, W, H); }
   }

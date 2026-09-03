@@ -96,6 +96,10 @@ of the curve, and play will move the constants.
   a gate cannot be driven from -8 to +14 inside its descent. The first version of this
   charged husk health per step, and a hundred-soldier squad maxed every gate on sight
   and hit the cap by level 3. Tested.
+- **Crossing a gate.** The half you cross flashes white, swells and dissolves into glass
+  shards in its colour while the other half drops away; nothing scrolls on past the
+  squad. The bonus lands large at the line with a caption that says what it did, and
+  the count tag pulses as it lands.
 - **HUD.** A clock in a pill with a progress ring, level and coin pills, a weapon badge,
   an opening "HOLD THE LINE" card, and walker damage tallies four times a second.
 - **Home and end screens.** A hero with the rendered key art, rank pips on every
