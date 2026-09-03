@@ -2,9 +2,9 @@
 
 Hold the line for sixty seconds.
 
-Bridgehold is a zero-build, Canvas 2D lane-runner: a squad crosses a night bridge, husk
-packs pour down the lane, gates change the squad's size, and at sixty seconds a frozen
-walker arrives with a very large number on it. It is the honest core of the "can you last
+Bridgehold is a zero-build, Canvas 2D lane-runner: a squad holds a sunlit bridge over
+the sea, husk packs pour down the road from the far end, gates change the squad's size,
+and at sixty seconds a frozen walker arrives with a very large number on it. It is the honest core of the "can you last
 60 seconds?" mobile ads, with everything that was there to sell you something removed.
 
 **No ads. No revives. No gacha. No timers. No purchases.** A lost run keeps every coin it
@@ -103,8 +103,9 @@ Progress saves in the browser under the `bridgehold` key.
 
 Every sprite is rendered from procedural Blender geometry by
 `tools/blender/build_sprites.py`, the same way FUN TD builds its towers: primitives, one
-night lighting rig (cold moon key, warm lantern fill), a tilted orthographic camera, and
-Cycles with a transparent film. The output is one PNG per part plus `manifest.json`.
+daylight rig (a hard warm sun, a soft sky fill, a cool rim), a tilted orthographic
+camera, and Cycles with a transparent film. The runtime draws the flat simulation lane
+in perspective, so a sprite's size on screen is its distance up the road. The output is one PNG per part plus `manifest.json`.
 
 ```bash
 npm run sprites            # Blender installed as the Python module: pip install bpy

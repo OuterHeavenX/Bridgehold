@@ -113,7 +113,7 @@ export const WEAPONS = Object.freeze({
 export const weaponDps = w => w.dmg * w.pellets / w.interval;
 
 /* The walker's descent. It starts above the screen and stops at the line. */
-export const BOSS = Object.freeze({ w: 226, h: 160, startY: -110, vy: 21 });
+export const BOSS = Object.freeze({ w: 226, h: 160, startY: -300, vy: 29 });
 export const bossTimeToLine = () => (LINE_Y - 14 - (BOSS.startY + BOSS.h / 2)) / BOSS.vy;
 
 export const squadDps = (stats, count) => stats.dmg * count / stats.interval;

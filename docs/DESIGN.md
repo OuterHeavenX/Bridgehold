@@ -146,6 +146,26 @@ of the curve, and play will move the constants.
   giant is on the lane for most of it, so the surge is a harvest for a squad that holds
   and a wipe for one that does not.
 
+## Pass 6, shipped: daylight and perspective
+
+- **Perspective.** The simulation still runs in a flat lane, but drawing projects it
+  onto a road seen from behind the squad. Depth is the distance up the road from the
+  line; everything scales by D / (D + depth) with D = 380, and screen height closes on
+  a horizon 470 pixels above the line. Rows behind the line have negative depth and draw
+  larger, so the squad is close and the horde is small until it is not. Packs, gates
+  and the walker now spawn at the far end of the road and grow as they come.
+- **Daylight, like the ads.** A sun-bleached concrete deck between jersey barriers, a
+  sea on both sides, a hazy shore on the horizon, hard shadows to the lower left. Every
+  sprite was re-rendered under a daylight rig: a hard warm sun from high front-right, a
+  soft sky fill, a cool rim. The home and end screens moved to a light palette with
+  the same amber.
+- **Gates stand up.** Each half is a glass slab across its half of the road with a lit
+  top edge and a shadow on the deck, the way the ads draw them, and the number sits on
+  its face at the slab's depth.
+- The night bridge is gone rather than kept as a variant; the deck, lamps and bay are
+  all drawn in perspective now, and a night palette would be a lighting pass on top of
+  that, not a return to the old drawing.
+
 ## What comes next
 
 - **More allies.** A third flank is not available, so later allies should replace or

@@ -52,6 +52,10 @@ test('enemy health grows with the level and within a run', () => {
   assert.ok(coinPerKill(8) > coinPerKill(4));
 });
 
+test('the walker takes about twenty-five seconds to reach the line', () => {
+  assert.ok(bossTimeToLine() > 23 && bossTimeToLine() < 28, bossTimeToLine().toFixed(1) + ' seconds');
+});
+
 test('the walker is beatable on level 1 with a forty-soldier squad, and a set piece for a big one', () => {
   const st = statsFor(fresh());
   const timeToKill = bossHP(1) / squadDps(st, 40);

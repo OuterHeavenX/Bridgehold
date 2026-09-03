@@ -1,30 +1,30 @@
 :root {
-  --bg: #0a1020; --bg2: #101a30; --panel: #121b2e; --panel2: #172238; --line: #22304d; --line2: #2f4066;
-  --ink: #e9eef7; --muted: #93a0ba; --dim: #5f6d8a;
-  --amber: #ffb640; --amber2: #ffc45e; --red: #ff4d5e; --blue: #4da3ff; --ice: #bdf3ff; --green: #5ee39a; --violet: #8b5cf6;
+  --bg: #cfd9e3; --bg2: #eef4f8; --panel: #ffffff; --panel2: #eef2f6; --line: #d6dee7; --line2: #b9c6d3;
+  --ink: #142238; --muted: #5b6b80; --dim: #8b9aab;
+  --amber: #ffb640; --amber2: #ffc45e; --red: #e5364a; --blue: #2f7fd6; --ice: #2aa9d8; --green: #1f9d5a; --violet: #7c4ddb;
 }
 html, body { background: var(--bg); }
 body {
   margin: 0; color: var(--ink); font-family: Barlow, "Segoe UI", system-ui, sans-serif; font-size: 15px; line-height: 1.45;
   min-height: 100vh; display: flex; align-items: center; justify-content: center;
-  background: radial-gradient(1200px 700px at 50% -10%, var(--bg2), var(--bg) 70%);
+  background: linear-gradient(180deg, #8fc3ee 0%, #dbeaf6 38%, #cfd9e3 100%);
   -webkit-font-smoothing: antialiased;
 }
 * { box-sizing: border-box; }
 .stage { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 16px; }
 #frame {
   position: relative; height: min(92vh, 780px); aspect-ratio: 9 / 16; border-radius: 26px; overflow: hidden;
-  background: #0d1526; box-shadow: 0 0 0 1px var(--line), 0 40px 90px rgba(0, 0, 0, .65), inset 0 0 0 1px rgba(255, 255, 255, .03);
+  background: #dbeaf6; box-shadow: 0 0 0 1px rgba(20, 34, 56, .18), 0 40px 90px rgba(20, 40, 70, .35), inset 0 0 0 1px rgba(255, 255, 255, .5);
   touch-action: none; user-select: none;
 }
 #cv { position: absolute; inset: 0; width: 100%; height: 100%; display: block; cursor: crosshair; }
 .hint { color: var(--muted); font-size: 13px; text-align: center; max-width: 44ch; margin: 0; }
-.hint kbd { font-family: "Chakra Petch", monospace; font-size: 12px; border: 1px solid var(--line); border-radius: 5px; padding: 0 6px; color: var(--ink); background: var(--panel); }
+.hint kbd { font-family: "Chakra Petch", monospace; font-size: 12px; border: 1px solid var(--line2); border-radius: 5px; padding: 0 6px; color: var(--ink); background: var(--panel); }
 
 /* ---------- screens ---------- */
 .screen {
   position: absolute; inset: 0; display: flex; flex-direction: column; padding: 0 20px 20px; gap: 12px;
-  background: linear-gradient(180deg, rgba(8, 13, 26, .94), rgba(10, 16, 32, .98)); overflow: auto; scrollbar-width: thin;
+  background: linear-gradient(180deg, rgba(238, 244, 248, .96), rgba(226, 232, 238, .98)); overflow: auto; scrollbar-width: thin;
 }
 .screen[hidden] { display: none; }
 .screen > * { flex-shrink: 0; }
@@ -33,18 +33,18 @@ body {
 @media (prefers-reduced-motion: reduce) { .screen.in { animation: none; } }
 
 h1 { font-family: "Chakra Petch", Impact, sans-serif; font-weight: 700; font-size: 44px; letter-spacing: .08em; margin: 0; line-height: 1; text-wrap: balance; }
-h1 small { display: block; font: 500 12px/1.3 Barlow, sans-serif; letter-spacing: .22em; color: var(--amber); text-transform: uppercase; margin-bottom: 8px; }
+h1 small { display: block; font: 600 12px/1.3 Barlow, sans-serif; letter-spacing: .22em; color: #b86f0a; text-transform: uppercase; margin-bottom: 8px; }
 .lede { color: var(--muted); margin: 0; max-width: 36ch; font-size: 14px; }
 
 /* hero with the rendered key art */
 .hero { position: relative; margin: 0 -20px; padding: 118px 20px 6px; overflow: hidden;
-  background: linear-gradient(180deg, #0b1426 0%, #10203c 55%, rgba(8, 13, 26, 0) 100%); }
+  background: linear-gradient(180deg, #6fb0e6 0%, #b9dcf3 60%, rgba(238, 244, 248, 0) 100%); }
 .hero::before { content: ""; position: absolute; inset: 0; background:
-  radial-gradient(160px 70px at 82% 26%, rgba(189, 243, 255, .22), rgba(189, 243, 255, 0) 70%),
-  radial-gradient(120px 60px at 22% 74%, rgba(255, 182, 64, .22), rgba(255, 182, 64, 0) 70%); pointer-events: none; }
+  radial-gradient(180px 90px at 84% 10%, rgba(255, 250, 225, .95), rgba(255, 245, 210, 0) 70%),
+  radial-gradient(140px 60px at 22% 78%, rgba(255, 255, 255, .5), rgba(255, 255, 255, 0) 70%); pointer-events: none; }
 .hero::after { content: ""; position: absolute; left: 20px; right: 20px; top: 104px; height: 1px; background: linear-gradient(90deg, rgba(255, 182, 64, 0), rgba(255, 182, 64, .7), rgba(255, 182, 64, 0)); }
 .hero-art { position: absolute; inset: 0; pointer-events: none; }
-.hero-art img { position: absolute; image-rendering: auto; filter: drop-shadow(0 8px 14px rgba(0, 0, 0, .5)); }
+.hero-art img { position: absolute; image-rendering: auto; filter: drop-shadow(-6px 10px 10px rgba(20, 40, 70, .35)); }
 .hero-walker { width: 150px; right: 6px; top: -14px; }
 .hero-soldier { width: 54px; bottom: 44px; }
 .hero-soldier.s1 { left: 22px; } .hero-soldier.s2 { left: 60px; bottom: 50px; } .hero-soldier.s3 { left: 98px; }
@@ -52,10 +52,10 @@ body:not(.has-art) .hero-art { display: none; }
 .hero h1 { position: relative; }
 
 .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-.stat { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; }
+.stat { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; box-shadow: 0 1px 2px rgba(20, 34, 56, .06); }
 .stat b { display: block; font-family: "Chakra Petch", sans-serif; font-size: 24px; font-variant-numeric: tabular-nums; line-height: 1.1; }
 .stat span { font-size: 10px; letter-spacing: .16em; text-transform: uppercase; color: var(--muted); }
-.stat.gold b { color: var(--amber); }
+.stat.gold b { color: #c97d10; }
 .stats.tall .stat { padding: 16px 12px; }
 .stats.tall .stat b { font-size: 32px; }
 
@@ -68,8 +68,8 @@ body:not(.has-art) .hero-art { display: none; }
 .lvl b { font-family: "Chakra Petch", sans-serif; font-size: 20px; line-height: 1; font-variant-numeric: tabular-nums; }
 .lvl span { font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: var(--dim); font-variant-numeric: tabular-nums; }
 .lvl.done span { color: var(--green); }
-.lvl.front span { color: var(--amber); }
-.lvl.sel { border-color: var(--amber); background: rgba(255, 182, 64, .12); box-shadow: 0 0 0 1px rgba(255, 182, 64, .35); }
+.lvl.front span { color: #b86f0a; }
+.lvl.sel { border-color: var(--amber); background: rgba(255, 182, 64, .18); box-shadow: 0 0 0 1px rgba(255, 182, 64, .5); }
 .lvl:hover { border-color: var(--line2); }
 .lvl:focus-visible { outline: 2px solid var(--ice); outline-offset: 2px; }
 
@@ -87,7 +87,7 @@ body:not(.has-art) .hero-art { display: none; }
 .buy { display: inline-flex; align-items: center; justify-content: center; gap: 6px; font: 600 14px "Chakra Petch", sans-serif; letter-spacing: .04em; background: var(--amber); color: #1a1200; border: 0; border-radius: 9px; padding: 9px 12px; min-width: 88px; cursor: pointer; font-variant-numeric: tabular-nums; transition: background .12s, transform .12s; }
 .buy:hover:not(:disabled) { background: var(--amber2); }
 .buy:active:not(:disabled) { transform: translateY(1px); }
-.buy:disabled { background: var(--panel2); color: var(--dim); cursor: default; }
+.buy:disabled { background: var(--panel2); color: var(--dim); cursor: default; border: 1px solid var(--line); }
 .coin { width: 10px; height: 10px; border-radius: 50%; background: radial-gradient(circle at 40% 35%, #fff2c8, #b57a1c 70%); box-shadow: 0 0 0 1px rgba(0, 0, 0, .25) inset; }
 .buy:disabled .coin { opacity: .4; }
 .buy:focus-visible, .cta:focus-visible, .ghost:focus-visible { outline: 2px solid var(--ice); outline-offset: 2px; }
@@ -95,11 +95,11 @@ body:not(.has-art) .hero-art { display: none; }
 /* unlocks */
 .unl { display: grid; grid-template-columns: 34px 1fr; gap: 10px; align-items: center; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 9px 12px; }
 .unl-mark { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; font: 700 14px "Chakra Petch", sans-serif; color: var(--dim); border: 1px dashed var(--line2); }
-.unl.on .unl-mark { color: #08231a; background: var(--green); border-style: solid; border-color: var(--green); }
+.unl.on .unl-mark { color: #ffffff; background: var(--green); border-style: solid; border-color: var(--green); }
 .unl.on .n { color: var(--green); }
 
 /* buttons */
-.cta-wrap { position: sticky; bottom: 0; margin: 4px -20px -20px; padding: 10px 20px 20px; background: linear-gradient(180deg, rgba(10, 16, 32, 0), rgba(10, 16, 32, .95) 40%); }
+.cta-wrap { position: sticky; bottom: 0; margin: 4px -20px -20px; padding: 10px 20px 20px; background: linear-gradient(180deg, rgba(226, 232, 238, 0), rgba(226, 232, 238, .96) 40%); }
 .cta { width: 100%; font: 700 20px "Chakra Petch", sans-serif; letter-spacing: .12em; text-transform: uppercase; background: var(--amber); color: #1a1200; border: 0; border-radius: 14px; padding: 15px; cursor: pointer; box-shadow: 0 10px 34px rgba(255, 182, 64, .28), inset 0 1px 0 rgba(255, 255, 255, .35); transition: background .12s, transform .12s; }
 .cta small { display: block; font: 600 11px Barlow, sans-serif; letter-spacing: .2em; opacity: .75; margin-top: 2px; }
 .cta:hover { background: var(--amber2); }
@@ -114,11 +114,11 @@ body:not(.has-art) .hero-art { display: none; }
 .reset { align-self: center; background: none; border: 0; color: var(--dim); font-size: 12px; cursor: pointer; text-decoration: underline; padding: 8px 4px 0; }
 
 /* end screen */
-.result { margin: 0 -20px; padding: 64px 20px 10px; background: linear-gradient(180deg, rgba(255, 77, 94, .16), rgba(8, 13, 26, 0)); }
-#end.won .result { background: linear-gradient(180deg, rgba(94, 227, 154, .16), rgba(8, 13, 26, 0)); }
-#eTitle { color: var(--red); text-shadow: 0 0 24px rgba(255, 77, 94, .45); }
-#end.won #eTitle { color: var(--green); text-shadow: 0 0 24px rgba(94, 227, 154, .45); }
+.result { margin: 0 -20px; padding: 64px 20px 10px; background: linear-gradient(180deg, rgba(229, 54, 74, .18), rgba(238, 244, 248, 0)); }
+#end.won .result { background: linear-gradient(180deg, rgba(31, 157, 90, .18), rgba(238, 244, 248, 0)); }
+#eTitle { color: var(--red); }
+#end.won #eTitle { color: var(--green); }
 
 /* allies */
-.unl.ally.on .unl-mark { background: var(--ice); border-color: var(--ice); color: #06202a; }
+.unl.ally.on .unl-mark { background: var(--ice); border-color: var(--ice); color: #ffffff; }
 .unl.ally.on .n { color: var(--ice); }

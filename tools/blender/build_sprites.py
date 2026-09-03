@@ -1,7 +1,7 @@
 """Render the Bridgehold sprite set from procedural Blender geometry.
 
 Everything the bridge draws is modelled here from primitives, lit once for a
-night scene (cold moon key, warm lantern fill), and rendered with a tilted
+daylight scene (hard warm sun, soft sky fill), and rendered with a tilted
 orthographic camera that matches the lane's top-down-and-slightly-behind view.
 The squad faces up the lane, away from the camera; every enemy faces down it.
 
@@ -146,7 +146,7 @@ def setup_scene(ortho):
     scene.render.image_settings.compression = 90
     scene.view_settings.view_transform = "Standard"
     scene.view_settings.look = "None"
-    scene.view_settings.exposure = -0.2
+    scene.view_settings.exposure = 0.0
 
     # A thin dark contour so the renders sit on the flat-shaded deck as
     # drawings rather than as photographs.
@@ -168,12 +168,12 @@ def setup_scene(ortho):
     except Exception as exc:  # freestyle is optional in some module builds
         print("freestyle unavailable:", exc)
 
-    world = scene.world or bpy.data.worlds.new("night")
+    world = scene.world or bpy.data.worlds.new("day")
     scene.world = world
     world.use_nodes = True
     bg = world.node_tree.nodes["Background"]
-    bg.inputs[0].default_value = (0.05, 0.08, 0.16, 1.0)
-    bg.inputs[1].default_value = 0.35
+    bg.inputs[0].default_value = (0.62, 0.78, 0.96, 1.0)
+    bg.inputs[1].default_value = 0.9
 
     # Camera: orthographic, tilted, aimed at the ground origin so the subject's
     # contact point lands at the image centre.
@@ -197,22 +197,18 @@ def setup_scene(ortho):
         if kind == "AREA":
             data.size = size
         if kind == "SUN":
-            data.angle = math.radians(4)
+            data.angle = math.radians(1.5)
         o = bpy.data.objects.new(name, data)
         o.location = loc
-        if rot:
-            o.rotation_euler = rot
-        else:
-            d = -o.location.normalized() if hasattr(o.location, "normalized") else None
-            o.rotation_euler = _aim(loc)
+        o.rotation_euler = rot if rot else _aim(loc)
         bpy.context.collection.objects.link(o)
         return o
 
-    # Moon key from high front-left, cold. Lantern fill from low behind the
-    # camera, warm, so the squad's backs and every enemy's face pick up amber.
-    light("SUN", "moon", (-6, 4, 12), 3.4, (0.80, 0.88, 1.0))
-    light("AREA", "lantern", (2.5, -6, 3.5), 420, (1.0, 0.74, 0.42), size=5)
-    light("AREA", "rim", (5, 7, 6), 500, (0.55, 0.85, 1.0), size=4)
+    # Daylight: a hard warm sun from high front-right, a soft sky fill from
+    # the left, and a cool rim from behind so figures separate from the deck.
+    light("SUN", "sun", (7, -5, 14), 4.2, (1.0, 0.96, 0.88))
+    light("AREA", "skyfill", (-6, -4, 6), 350, (0.72, 0.84, 1.0), size=6)
+    light("AREA", "rim", (3, 7, 6), 220, (0.85, 0.95, 1.0), size=4)
 
     # Shadow catcher: a ground plane that renders only the shadow it receives.
     bpy.ops.mesh.primitive_plane_add(size=ortho * 3, location=(0, 0, 0))
