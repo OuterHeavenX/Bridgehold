@@ -41,6 +41,7 @@ test('the runtime only draws parts that exist', () => {
   const js = fs.readFileSync(path.join(ROOT, 'src', 'game.js'), 'utf8');
   const literal = [...js.matchAll(/art\.draw\(ctx, '([a-z_0-9]+)'[,)]/g)].map(m => m[1]);
   for (const name of literal) assert.ok(name in manifest.parts, name + ' is in the manifest');
+  for (const name of ['sentinel', 'frostlamp', 'walker', 'lamp', 'muzzle']) assert.ok(literal.includes(name), name + ' is drawn by the runtime');
   // families built as kind + '_' + frame
   for (const kind of ['husk', 'runner', 'brute', 'soldier']) for (const f of [0, 1]) {
     assert.ok(`${kind}_${f}` in manifest.parts, `${kind}_${f} is in the manifest`);

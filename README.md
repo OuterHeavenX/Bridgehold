@@ -65,10 +65,22 @@ health climbs ×1.32 per level and 1% per second inside a run; the walker's clim
 A test asserts that a cleared level always pays for at least two upgrades at that level,
 and that the level-1 walker dies to a forty-soldier squad before it reaches the line.
 
+The squad holds its ground. The bridge does not move and the squad does not walk; every
+pack, gate and walker comes down the lane to the line, and steering only decides where
+on the line the squad stands.
+
 Two weapons are earned by play and cannot be bought:
 
 - **Piercing rounds** after clearing level 3. Each shot passes through one husk.
 - **Frag rounds** after clearing level 6. Hits splash nearby husks for half damage.
+
+Two allies take the flanks of the line once earned, and are deployed on every run after:
+
+- **Sentinel** after clearing level 4. A walker of your own on the left flank that lobs a
+  shell worth eight soldier shots into the thickest pack every 1.4 seconds, splashed, and
+  into the walker once it is on screen.
+- **Frost lantern** after clearing level 8. A cold lamp on the right flank; everything in
+  the last 150 pixels of the bridge walks at two thirds speed.
 
 Cleared levels stay open on the home screen with your best squad on each, so an old
 level is worth replaying. Only clearing the frontier level opens the next one.

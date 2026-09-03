@@ -12,6 +12,12 @@
       "pixelsPerUnit": 61.935,
       "size": 192
     },
+    "frostlamp": {
+      "file": "frostlamp.png",
+      "note": "ally lantern; ground point at centre",
+      "pixelsPerUnit": 27.826,
+      "size": 128
+    },
     "husk_0": {
       "file": "husk_0.png",
       "note": "faces down the lane; walk frame A",
@@ -47,6 +53,12 @@
       "note": "faces down the lane; sprint frame B",
       "pixelsPerUnit": 60.952,
       "size": 128
+    },
+    "sentinel": {
+      "file": "sentinel.png",
+      "note": "ally walker; faces up the lane; ground point at centre",
+      "pixelsPerUnit": 45.714,
+      "size": 192
     },
     "soldier_0": {
       "file": "soldier_0.png",

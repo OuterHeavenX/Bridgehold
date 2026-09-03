@@ -387,6 +387,39 @@ def walker():
     box((4.82, 3.42, 0.4), loc=(0, 0, 3.35), material=frost, bevel=0.1)
 
 
+def sentinel():
+    """A walker of the squad's own: the same hull family as the frozen one,
+    smaller, unfrozen, facing up the lane with a stubby mortar."""
+    hull = mat("shull", (0.16, 0.30, 0.56), metallic=0.35, roughness=0.5)
+    dark = mat("shull_d", (0.09, 0.16, 0.32), metallic=0.4, roughness=0.45)
+    trim = mat("strim", AMBER, metallic=0.2, roughness=0.5)
+    box((1.7, 1.4, 0.6), loc=(0, 0, 1.0), material=hull, bevel=0.04)
+    ball(0.7, loc=(0, 0, 1.4), material=hull, scale=(1, 1, 0.7))
+    cyl(0.2, 1.2, loc=(0, 0.5, 1.85), rot=(math.radians(-55), 0, 0), material=dark)   # mortar, up the lane
+    cyl(0.3, 0.35, loc=(0, 0.1, 1.55), rot=(math.radians(-55), 0, 0), material=dark)
+    box((0.9, 0.12, 0.2), loc=(0, -0.72, 1.1), material=trim)   # stripe on the back
+    ball(0.1, loc=(-0.5, -0.72, 1.3), material=mat("slamp", (1, 0.7, 0.3), emission=(1.0, 0.62, 0.2), strength=14))
+    ball(0.1, loc=(0.5, -0.72, 1.3), material=mat("slamp", (1, 0.7, 0.3), emission=(1.0, 0.62, 0.2), strength=14))
+    for sx in (-1, 1):
+        for sy, lift in ((-0.55, 0.0), (0.55, 0.15)):
+            cyl(0.12, 1.0, loc=(sx * 1.05, sy, 0.7 + lift), rot=(0, math.radians(sx * 30), 0), material=dark)
+            cyl(0.1, 0.7, loc=(sx * 1.35, sy, 0.3 + lift), material=dark)
+            ball(0.16, loc=(sx * 1.35, sy, 0.08 + lift), material=hull)
+
+
+def frostlamp():
+    """A tall lantern on a tripod with a cold blue flame."""
+    post = mat("fpost", (0.30, 0.34, 0.44), metallic=0.6, roughness=0.5)
+    for i in range(3):
+        a = i * math.tau / 3
+        cyl(0.05, 1.4, loc=(math.cos(a) * 0.35, math.sin(a) * 0.35, 0.7), rot=(math.sin(a) * 0.5, -math.cos(a) * 0.5, 0), material=post)
+    cyl(0.07, 1.8, loc=(0, 0, 2.0), material=post)
+    box((0.7, 0.7, 0.9), loc=(0, 0, 3.1), material=mat("fglass", (0.75, 0.95, 1.0), roughness=0.05, transmission=0.9, ior=1.4), bevel=0.05)
+    box((0.8, 0.8, 0.1), loc=(0, 0, 3.6), material=post)
+    box((0.8, 0.8, 0.1), loc=(0, 0, 2.62), material=post)
+    ball(0.22, loc=(0, 0, 3.05), material=mat("fflame", (0.6, 0.9, 1.0), emission=(0.55, 0.9, 1.0), strength=40))
+
+
 def lamp():
     """A bridge lamp post, drawn along the rails."""
     post = mat("post", (0.32, 0.35, 0.42), metallic=0.6, roughness=0.5)
@@ -408,6 +441,8 @@ PARTS = {
     "brute_1":   (lambda: brute(1), 192, 3.1, "faces down the lane; walk frame B"),
     "walker":    (walker, 512, 6.4, "the frozen walker; ground point at centre"),
     "lamp":      (lamp, 96, 3.2, "rail lamp post"),
+    "sentinel":  (sentinel, 192, 4.2, "ally walker; faces up the lane; ground point at centre"),
+    "frostlamp": (frostlamp, 128, 4.6, "ally lantern; ground point at centre"),
 }
 
 

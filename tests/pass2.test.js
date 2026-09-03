@@ -2,7 +2,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  DEFAULT_SAVE, ENEMIES, WEAPONS, SQUAD_CAP, MUL_GAIN_CAP,
+  DEFAULT_SAVE, ENEMIES, WEAPONS, SQUAD_CAP, MUL_GAIN_CAP, HELPERS, helpersFor, UPGRADES,
   packKind, packSize, weaponDps, gateHalf, hitGate, applyGate, recordRun, gateStepFor, GATE_STEP_SECONDS, statsFor,
 } from '../src/balance.js';
 
@@ -115,4 +115,17 @@ test('a multiplier is true when small and bounded when big', () => {
 
 test('the squad cap holds through a weapon gate', () => {
   assert.equal(applyGate(SQUAD_CAP, { kind: 'weapon', v: 'shotgun' }, 0).count, SQUAD_CAP);
+});
+
+test('allies are earned by clearing levels and never by rank', () => {
+  const s = fresh();
+  assert.deepEqual(helpersFor(s), []);
+  for (const u of UPGRADES) s.up[u.k] = u.max;
+  assert.deepEqual(helpersFor(s), [], 'a maxed camp buys no ally');
+  s.level = HELPERS[0].clear + 1;
+  assert.deepEqual(helpersFor(s).map(h => h.k), ['sentinel']);
+  s.level = HELPERS[1].clear + 1;
+  assert.deepEqual(helpersFor(s).map(h => h.k), ['sentinel', 'frost']);
+  assert.notEqual(HELPERS[0].side, HELPERS[1].side, 'each ally takes its own flank');
+  assert.ok(HELPERS[0].clear < HELPERS[1].clear);
 });

@@ -53,6 +53,7 @@ export function createAudio(initiallyOn) {
     weapon()    { tone('square', 330, 660, 0.12, 0.15); tone('square', 660, 990, 0.16, 0.12, 0.1); },
     crack()     { if (throttle('crack', 80)) { noise(0.06, 0.4, 2200, 2); tone('sine', 220, 180, 0.08, 0.12); } },
     shatter()   { noise(0.5, 0.7, 1500, 0.6); tone('sine', 880, 110, 0.6, 0.3); tone('triangle', 1320, 220, 0.5, 0.15, 0.05); },
+    thump()     { tone('sine', 140, 60, 0.22, 0.3); noise(0.08, 0.3, 400, 0.8); },
     lost()      { if (throttle('lost', 120)) tone('square', 220, 120, 0.12, 0.15); },
     broken()    { tone('sawtooth', 200, 40, 0.9, 0.3); noise(0.4, 0.4, 300, 0.7); },
     held()      { [523, 659, 784, 1047].forEach((f, i) => tone('triangle', f, f, 0.35, 0.18, i * 0.09)); },

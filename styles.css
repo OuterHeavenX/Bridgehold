@@ -118,3 +118,7 @@ body:not(.has-art) .hero-art { display: none; }
 #end.won .result { background: linear-gradient(180deg, rgba(94, 227, 154, .16), rgba(8, 13, 26, 0)); }
 #eTitle { color: var(--red); text-shadow: 0 0 24px rgba(255, 77, 94, .45); }
 #end.won #eTitle { color: var(--green); text-shadow: 0 0 24px rgba(94, 227, 154, .45); }
+
+/* allies */
+.unl.ally.on .unl-mark { background: var(--ice); border-color: var(--ice); color: #06202a; }
+.unl.ally.on .n { color: var(--ice); }

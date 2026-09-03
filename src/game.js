@@ -1,7 +1,7 @@
 import {
-  RUN_T, LINE_Y, DEFAULT_SAVE, UPGRADES, UNLOCKS, ENEMIES, WEAPONS, BOSS,
+  RUN_T, LINE_Y, DEFAULT_SAVE, UPGRADES, UNLOCKS, ENEMIES, WEAPONS, BOSS, HELPERS,
   cost, statsFor, huskHP, bossHP, bossReward, clearBonus, coinPerKill,
-  packKind, packSize, packInterval, GATE_INTERVAL, gateStepFor, gateHalf, hitGate, gateValue, applyGate, recordRun,
+  packKind, packSize, packInterval, GATE_INTERVAL, gateStepFor, gateHalf, helpersFor, hitGate, gateValue, applyGate, recordRun,
 } from './balance.js';
 import { createAudio } from './audio.js';
 import { loadArt } from './art.js';
@@ -14,7 +14,8 @@ const $ = id => document.getElementById(id);
 
 // Game pixels per Blender unit, per sprite family. The walker is drawn at a
 // larger scale on purpose: it is meant to be monumental.
-const PPU = { unit: 14, brute: 16, walker: 45, lamp: 11 };
+const PPU = { unit: 14, brute: 16, walker: 45, lamp: 11, sentinel: 17, frostlamp: 12 };
+const FLANK = { l: LANE_L + 30, r: LANE_R - 30, y: LINE_Y + 44 };
 let art = null;
 loadArt().then(pack => { art = pack; document.body.classList.toggle('has-art', !!pack); });
 
@@ -79,6 +80,14 @@ function renderHome() {
     row.innerHTML = `<div class="unl-mark" aria-hidden="true">${on ? '✓' : u.clear}</div><div><div class="n">${u.name}</div><div class="d">${u.desc} ${on ? 'Earned.' : 'Clear level ' + u.clear + '.'}</div></div>`;
     ub.appendChild(row);
   }
+  const hb = $('helpers'); hb.innerHTML = '';
+  const have = helpersFor(save).map(h => h.k);
+  for (const h of HELPERS) {
+    const on = have.includes(h.k);
+    const row = document.createElement('div'); row.className = 'unl ally' + (on ? ' on' : '');
+    row.innerHTML = `<div class="unl-mark" aria-hidden="true">${on ? '✓' : h.clear}</div><div><div class="n">${h.name}</div><div class="d">${h.desc} ${on ? 'Deployed on every run.' : 'Clear level ' + h.clear + '.'}</div></div>`;
+    hb.appendChild(row);
+  }
   $('sound').textContent = 'Sound ' + (save.settings.sound ? 'on' : 'off');
   $('sound').setAttribute('aria-pressed', String(save.settings.sound));
   $('motion').textContent = 'Motion ' + (save.settings.motion === 'reduced' ? 'reduced' : 'full');
@@ -113,7 +122,9 @@ function startRun() {
     bullets: [], husks: [], gates: [], boss: null, floats: [], parts: [],
     kills: 0, coins: 0, shake: 0, over: 0, won: false, endT: 0, flash: 0, wpnT: 0,
     bossDmg: 0, bossDmgT: 0, tagPulse: 0,
+    helpers: helpersFor(save), shells: [], shellT: 0.9,
   };
+  G.frost = G.helpers.find(h => h.k === 'frost') || null;
   showScreen(null);
   paused = false; last = performance.now();
 }
@@ -204,6 +215,28 @@ function loseSoldiers(n) {
   audio.lost();
   if (G.count <= 0) breakLine();
 }
+function walkerDown() {
+  const bs = G.boss; if (G.over) return;
+  bs.hp = 0; burst(bs.x, bs.y, '#bdf3ff', 70, 260); G.shake = 10;
+  G.coins += bossReward(G.level) + clearBonus(G.level); G.kills++;
+  float(W / 2, 200, 'LINE HELD', '#5ee39a', 34);
+  audio.shatter(); audio.held();
+  G.over = 1; G.won = true; G.endT = 0;
+}
+/* Where the Sentinel aims: the walker if it is on screen, else the centre of
+   the pack with the most health on the deck, else nothing. */
+function shellTarget() {
+  if (G.boss && G.boss.hp > 0 && G.boss.y > 40) return { x: G.boss.x, y: G.boss.y };
+  const packs = new Map();
+  for (const h of G.husks) {
+    if (h.y < 20) continue;
+    const p = packs.get(h.pack) || { hp: 0, sx: 0, sy: 0, n: 0 };
+    p.hp += h.hp; p.sx += h.x; p.sy += h.y; p.n++; packs.set(h.pack, p);
+  }
+  let best = null;
+  for (const p of packs.values()) if (!best || p.hp > best.hp) best = p;
+  return best ? { x: best.sx / best.n, y: best.sy / best.n } : null;
+}
 function breakLine() {
   if (G.over) return;
   G.over = 1; G.won = false; G.endT = 0; G.shake = 8;
@@ -228,7 +261,6 @@ function fire() {
 function update(dt) {
   if (!G) return;
   G.t += dt;
-  stripe = (stripe + 120 * dt) % 160;
   if (G.flash > 0) G.flash -= dt;
   if (G.wpnT > 0) G.wpnT -= dt;
   if (G.muzzleT > 0) G.muzzleT -= dt;
@@ -286,13 +318,7 @@ function update(dt) {
       burst(b.x, bs.y + bs.h / 2, '#dff7ff', 2, 120);
       audio.crack();
       while (bs.hp > 0 && bs.hp / bs.max < bs.nextCrack) { addCrack(bs); bs.nextCrack -= 0.1; }
-      if (bs.hp <= 0) {
-        bs.hp = 0; burst(bs.x, bs.y, '#bdf3ff', 70, 260); G.shake = 10;
-        G.coins += bossReward(G.level) + clearBonus(G.level); G.kills++;
-        float(W / 2, 200, 'LINE HELD', '#5ee39a', 34);
-        audio.shatter(); audio.held();
-        G.over = 1; G.won = true; G.endT = 0;
-      }
+      if (bs.hp <= 0) walkerDown();
     }
     if (!dead) for (let hi = G.husks.length - 1; hi >= 0; hi--) {
       const h = G.husks[hi];
@@ -330,7 +356,8 @@ function update(dt) {
       if (G.over === 0) { h.chewT += dt; if (h.chewT >= 1) { h.chewT -= 1; loseSoldiers(ENEMIES.brute.chew); G.shake = Math.max(G.shake, 3); } }
       continue;
     }
-    h.y += h.vy * dt;
+    const frost = G.frost && h.y > LINE_Y - G.frost.band ? G.frost.slow : 1;
+    h.y += h.vy * dt * frost;
     if (h.y >= LINE_Y - 6 - (h.kind === 'brute' ? 10 : 0)) {
       if (h.kind === 'brute') { h.parked = true; h.y = LINE_Y - 16; G.shake = Math.max(G.shake, 5); audio.gateBad(); continue; }
       G.husks.splice(hi, 1);
@@ -367,6 +394,41 @@ function update(dt) {
     if (g.y > H + 40) G.gates.splice(gi, 1);
   }
   G.peak = Math.max(G.peak, G.count);
+
+  // allies
+  if (G.over === 0) {
+    const sentinel = G.helpers.find(h => h.k === 'sentinel');
+    if (sentinel) {
+      G.shellT -= dt;
+      if (G.shellT <= 0) {
+        G.shellT = sentinel.interval;
+        const target = shellTarget();
+        if (target) {
+          G.shells.push({ x0: FLANK.l, y0: FLANK.y - 26, tx: target.x, ty: target.y, t: 0, dur: 0.75, dmg: G.st.dmg * sentinel.dmg, radius: sentinel.radius });
+          audio.thump();
+        }
+      }
+    }
+  }
+  for (let i = G.shells.length - 1; i >= 0; i--) {
+    const sh = G.shells[i]; sh.t += dt;
+    if (sh.t >= sh.dur) {
+      G.shells.splice(i, 1);
+      burst(sh.tx, sh.ty, '#ffb640', 16, 220); G.shake = Math.max(G.shake, 2.5);
+      float(sh.tx, sh.ty - 18, 'BOOM', '#ffb640', 14);
+      if (G.boss && G.boss.hp > 0 && Math.abs(sh.tx - G.boss.x) < G.boss.w / 2 + 20 && Math.abs(sh.ty - G.boss.y) < G.boss.h / 2 + 20) {
+        G.boss.hp = Math.max(0, G.boss.hp - sh.dmg); G.boss.hitT = 0.1; G.bossDmg += sh.dmg;
+        while (G.boss.hp > 0 && G.boss.hp / G.boss.max < G.boss.nextCrack) { addCrack(G.boss); G.boss.nextCrack -= 0.1; }
+        if (G.boss.hp <= 0) walkerDown();
+      }
+      for (let hi = G.husks.length - 1; hi >= 0; hi--) {
+        const h = G.husks[hi], dx = h.x - sh.tx, dy = h.y - sh.ty;
+        if (dx * dx + dy * dy > sh.radius * sh.radius) continue;
+        h.hp -= sh.dmg; h.hurt = 0.1;
+        if (h.hp <= 0) killHusk(h, hi);
+      }
+    }
+  }
 
   // the walker
   if (G.boss && G.boss.hp > 0) {
@@ -687,6 +749,52 @@ function drawBullets() {
     }
   }
 }
+function drawAllies() {
+  if (G.frost) {
+    const band = ctx.createLinearGradient(0, LINE_Y - G.frost.band, 0, LINE_Y);
+    band.addColorStop(0, 'rgba(189,243,255,0)'); band.addColorStop(1, 'rgba(189,243,255,.14)');
+    ctx.fillStyle = band; ctx.fillRect(LANE_L, LINE_Y - G.frost.band, LANE_R - LANE_L, G.frost.band);
+    ctx.fillStyle = 'rgba(189,243,255,.35)'; ctx.fillRect(LANE_L, LINE_Y - G.frost.band, LANE_R - LANE_L, 1);
+  }
+  for (const h of G.helpers) {
+    const x = FLANK[h.side], y = FLANK.y;
+    if (h.k === 'sentinel') {
+      const recoil = !reduceMotion() && G.shellT > h.interval - 0.12 ? 3 : 0;
+      if (!(art && art.draw(ctx, 'sentinel', x, y + recoil, PPU.sentinel))) {
+        ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.beginPath(); ctx.ellipse(x, y + 8, 22, 8, 0, 0, 6.28); ctx.fill();
+        ctx.fillStyle = '#2a4d8f'; ctx.fillRect(x - 18, y - 22 + recoil, 36, 26);
+        ctx.fillStyle = '#17294f'; ctx.fillRect(x - 4, y - 40 + recoil, 8, 22);
+      }
+      const glow = ctx.createRadialGradient(x, y, 4, x, y, 40);
+      glow.addColorStop(0, 'rgba(255,190,100,.14)'); glow.addColorStop(1, 'rgba(255,190,100,0)');
+      ctx.fillStyle = glow; ctx.fillRect(x - 40, y - 40, 80, 80);
+    } else if (h.k === 'frost') {
+      if (!(art && art.draw(ctx, 'frostlamp', x, y, PPU.frostlamp))) {
+        ctx.fillStyle = '#4c5568'; ctx.fillRect(x - 2, y - 44, 4, 44);
+        ctx.fillStyle = '#bdf3ff'; ctx.fillRect(x - 6, y - 52, 12, 12);
+      }
+      const p = reduceMotion() ? 1 : 1 + Math.sin(performance.now() / 300) * 0.15;
+      const halo = ctx.createRadialGradient(x, y - 40, 2, x, y - 40, 34 * p);
+      halo.addColorStop(0, 'rgba(189,243,255,.5)'); halo.addColorStop(1, 'rgba(189,243,255,0)');
+      ctx.fillStyle = halo; ctx.fillRect(x - 40, y - 80, 80, 80);
+    }
+  }
+}
+function drawShells() {
+  for (const sh of G.shells) {
+    const k = sh.t / sh.dur, x = sh.x0 + (sh.tx - sh.x0) * k, yGround = sh.y0 + (sh.ty - sh.y0) * k, lift = Math.sin(k * Math.PI) * 120;
+    ctx.fillStyle = 'rgba(0,0,0,.25)'; ctx.beginPath(); ctx.ellipse(x, yGround, 6, 3, 0, 0, 6.28); ctx.fill();
+    const y = yGround - lift;
+    const g = ctx.createRadialGradient(x, y, 1, x, y, 9);
+    g.addColorStop(0, 'rgba(255,240,200,1)'); g.addColorStop(0.5, 'rgba(255,182,64,.9)'); g.addColorStop(1, 'rgba(255,140,30,0)');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, 9, 0, 6.28); ctx.fill();
+  }
+  // landing marker while a shell is in the air
+  for (const sh of G.shells) {
+    ctx.strokeStyle = `rgba(255,182,64,${0.25 + 0.4 * (sh.t / sh.dur)})`; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.arc(sh.tx, sh.ty, sh.radius * (0.6 + 0.4 * sh.t / sh.dur), 0, 6.28); ctx.stroke();
+  }
+}
 function drawBoss() {
   const b = G.boss; if (!b || b.hp <= 0) return;
   const bob = reduceMotion() ? 0 : Math.sin(b.wob * 2) * 1.5;
@@ -775,7 +883,9 @@ function draw() {
     for (const g of G.gates) drawGate(g);
     drawEnemies();
     drawBoss();
+    drawAllies();
     drawBullets();
+    drawShells();
     for (const p of G.parts) {
       ctx.globalAlpha = 1 - p.t / p.life; ctx.fillStyle = p.color;
       if (p.shard) { ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot); ctx.fillRect(-p.len / 2, -1.5, p.len, 3); ctx.fillStyle = 'rgba(255,255,255,.6)'; ctx.fillRect(-p.len / 2, -1.5, p.len, 1); ctx.restore(); }

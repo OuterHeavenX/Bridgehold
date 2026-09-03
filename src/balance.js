@@ -31,6 +31,15 @@ export const UNLOCKS = [
   { k: 'splash', name: 'Frag rounds',     desc: 'Hits splash nearby husks for half.', clear: 6 },
 ];
 
+/* Allies. Big helpers that take a flank of the line once a level is cleared.
+   They are earned, never bought, and always deployed once earned. `dmg` is
+   in soldier shots; the Sentinel's shell is worth eight of them, splashed. */
+export const HELPERS = [
+  { k: 'sentinel', name: 'Sentinel', desc: 'A walker of your own on the left flank. Lobs a shell into the thickest pack every 1.4 seconds.', clear: 4, side: 'l', interval: 1.4, dmg: 8, radius: 36 },
+  { k: 'frost',    name: 'Frost lantern', desc: 'A cold lamp on the right flank. Everything in the last stretch of the bridge walks at two thirds speed.', clear: 8, side: 'r', slow: 0.65, band: 150 },
+];
+export const helpersFor = save => HELPERS.filter(h => save.level > h.clear);
+
 export const cost = (u, rank) => Math.round(u.base * Math.pow(1.35, rank));
 
 export function statsFor(save) {

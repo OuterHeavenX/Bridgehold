@@ -106,8 +106,25 @@ of the curve, and play will move the constants.
   upgrade, unlock rows with an earned mark, a sticky Deploy that names the level, and
   tallies that count up on the result screen. Reduced motion turns all of it off.
 
+## Pass 4, shipped: the squad holds its ground
+
+- **The bridge does not move.** The deck, lamps and joints are fixed; the squad stands
+  at the line and steers along it. Packs, gates and the walker come to it. The earlier
+  scrolling deck sold a march that never happened and fought the fantasy of holding a
+  position.
+- **Allies.** Big helpers that take a flank once a level is cleared, earned and never
+  bought, deployed on every run after. The Sentinel (clear level 4) is a walker of the
+  squad's own, rendered in the same hull family as the frozen one; it lobs a shell worth
+  eight soldier shots into the pack with the most health every 1.4 seconds, with a
+  landing ring while the shell is in the air, and switches to the walker once it is on
+  screen. The Frost lantern (clear level 8) slows everything in the last 150 pixels to
+  two thirds speed, drawn as a cold band across the deck.
+- Both are rows in `HELPERS` in the balance module, tested to be earned by clears only.
+
 ## What comes next
 
+- **More allies.** A third flank is not available, so later allies should replace or
+  upgrade the first two: a heavier shell, a wider frost band.
 - **A shield husk** that only pierce or frag hurts efficiently, so the unlocks change
   how a pack is read rather than only adding damage.
 - **A daily seed.** Same gate rolls for everyone that day, a local best to beat. Social
