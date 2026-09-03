@@ -4,7 +4,11 @@
 
 export const RUN_T = 60;          // seconds before the walker arrives
 export const LINE_Y = 548;        // the squad's line, in the 360x640 world
-export const SQUAD_CAP = 300;
+export const SQUAD_CAP = 200;
+/* A multiplier gate multiplies, but never adds more than this. Early it is a
+   true x2 or x3; late it is a large flat gain, so a big squad cannot snowball
+   from one lucky gate to the cap. */
+export const MUL_GAIN_CAP = 80;
 
 export const DEFAULT_SAVE = Object.freeze({
   level: 1,                       // the frontier: highest level open to play
@@ -46,8 +50,8 @@ export function statsFor(save) {
    level 1. Husk health rides a slightly gentler curve; the walker rides the
    same one, and squad growth from gate play is what makes it fall faster. */
 export const levelScale = level => Math.pow(1.35, level - 1);
-export const huskHP = (level, t) => 18 * Math.pow(1.32, level - 1) * (1 + t / 100);
-export const bossHP = level => Math.round(6000 * levelScale(level));
+export const huskHP = (level, t) => 14 * Math.pow(1.32, level - 1) * (1 + t / 100);
+export const bossHP = level => Math.round(12000 * levelScale(level));
 export const bossReward = level => Math.round(40 * levelScale(level));
 export const clearBonus = level => Math.round(60 * levelScale(level));
 export const coinPerKill = level => Math.ceil(levelScale(level));
@@ -70,7 +74,7 @@ export function packKind(level, r) {
 export function packSize(kind, level, r) {
   if (kind === 'brute') return level >= 6 ? 2 : 1;
   if (kind === 'runner') return Math.min(24, 6 + Math.floor(r * 6) + level);
-  return Math.min(44, 6 + Math.floor(r * 8) + level * 2);
+  return Math.min(44, 4 + Math.floor(r * 5) + level * 2);
 }
 export const packInterval = t => 2.4 - 1.1 * Math.min(1, t / RUN_T);
 export const GATE_INTERVAL = 5;
@@ -96,16 +100,31 @@ export const squadDps = (stats, count) => stats.dmg * count / stats.interval;
 export function gateHalf(r, level = 1) {
   if (r < 0.42) return { kind: 'add', v: 2 + Math.floor((r / 0.42) * 5) };
   if (r < 0.80) return { kind: 'add', v: -(2 + Math.floor(((r - 0.42) / 0.38) * 7)) };
-  if (r < 0.90) return { kind: 'mul', v: 2, hits: 0 };
-  if (r < 0.93 || level < 2) return { kind: 'mul', v: 3, hits: 0 };
-  return { kind: 'weapon', v: r < 0.965 ? 'shotgun' : 'rail' };
+  if (r < 0.89) return { kind: 'mul', v: 2, hits: 0 };
+  if (r < 0.92 || level < 2) return { kind: 'mul', v: 3, hits: 0 };
+  return { kind: 'weapon', v: r < 0.96 ? 'shotgun' : 'rail' };
 }
 
-/* A bullet hit nudges the gate toward the player. Adds climb one per hit;
-   multipliers climb one step per eight hits; weapon gates do not change. */
-export function hitGate(half) {
-  if (half.kind === 'add') half.v = Math.min(14, half.v + 1);
-  else if (half.kind === 'mul') { half.hits++; if (half.hits % 8 === 0) half.v = Math.min(5, half.v + 1); }
+/* Bullets pass through gates and nudge them toward the player as they go.
+   `dmg` accumulates against `step`; every full step moves an add gate by
+   one, and every eight steps move a multiplier by one. Weapon gates do not
+   change. With the defaults a hit is a step, which is what the tests pin.
+
+   The runtime's step is GATE_STEP_SECONDS of the squad's current fire, so a
+   gate is always a steering decision measured in seconds: a -8 needs about
+   three seconds of fire on its half to reach zero, however big the squad,
+   and a gate cannot be driven from -8 to +14 inside its descent. */
+export const GATE_STEP_SECONDS = 0.35;
+export const gateStepFor = (stats, weapon, count) =>
+  stats.dmg * weapon.dmg * weapon.pellets / (stats.interval * weapon.interval) * count * GATE_STEP_SECONDS;
+export function hitGate(half, dmg = 1, step = 1) {
+  if (half.kind === 'weapon') return half;
+  half.acc = (half.acc || 0) + dmg;
+  while (half.acc >= step) {
+    half.acc -= step;
+    if (half.kind === 'add') half.v = Math.min(14, half.v + 1);
+    else { half.hits = (half.hits || 0) + 1; if (half.hits % 8 === 0) half.v = Math.min(5, half.v + 1); }
+  }
   return half;
 }
 
@@ -116,7 +135,8 @@ export function applyGate(count, half, gateBoost) {
     return { count, text: WEAPONS[half.v].name, good: true, weapon: half.v };
   }
   if (half.kind === 'mul') {
-    return { count: Math.min(SQUAD_CAP, Math.floor(count * half.v)), text: '×' + half.v, good: true };
+    const gain = Math.min(MUL_GAIN_CAP, Math.floor(count * (half.v - 1)));
+    return { count: Math.min(SQUAD_CAP, count + gain), text: '×' + half.v, good: true, gain };
   }
   const v = gateValue(half, gateBoost);
   if (v >= 0) return { count: Math.min(SQUAD_CAP, count + v), text: '+' + v, good: true };

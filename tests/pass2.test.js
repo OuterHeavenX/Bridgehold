@@ -2,8 +2,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  DEFAULT_SAVE, ENEMIES, WEAPONS, SQUAD_CAP,
-  packKind, packSize, weaponDps, gateHalf, hitGate, applyGate, recordRun,
+  DEFAULT_SAVE, ENEMIES, WEAPONS, SQUAD_CAP, MUL_GAIN_CAP,
+  packKind, packSize, weaponDps, gateHalf, hitGate, applyGate, recordRun, gateStepFor, GATE_STEP_SECONDS, statsFor,
 } from '../src/balance.js';
 
 const fresh = () => ({ ...DEFAULT_SAVE, up: { ...DEFAULT_SAVE.up }, levels: {}, settings: { ...DEFAULT_SAVE.settings } });
@@ -38,9 +38,9 @@ test('weapons: shotgun out-damages the rifle up close, the rail pierces everythi
 });
 
 test('weapon gates roll only from level 2 and never react to bullets', () => {
-  for (let r = 0.93; r < 1; r += 0.005) assert.equal(gateHalf(r, 1).kind, 'mul', 'level 1 rolls ×3 instead');
+  for (let r = 0.92; r < 1; r += 0.005) assert.equal(gateHalf(r, 1).kind, 'mul', 'level 1 rolls ×3 instead');
   const seen = new Set();
-  for (let r = 0.93; r < 1; r += 0.005) { const h = gateHalf(r, 2); assert.equal(h.kind, 'weapon'); seen.add(h.v); }
+  for (let r = 0.92; r < 1; r += 0.005) { const h = gateHalf(r, 2); assert.equal(h.kind, 'weapon'); seen.add(h.v); }
   assert.deepEqual([...seen].sort(), ['rail', 'shotgun']);
   const h = { kind: 'weapon', v: 'rail' };
   for (let i = 0; i < 20; i++) hitGate(h);
@@ -72,6 +72,45 @@ test('the ledger: the frontier only moves when the frontier is cleared', () => {
   assert.equal(s.levels[1].best, 30, 'best is a high-water mark');
   assert.equal(s.best, 50);
   assert.equal(s.coins, 640, 'every run pays, won or lost');
+});
+
+test('gate nudges are paid in damage, not bullets', () => {
+  const h = { kind: 'add', v: -6 };
+  hitGate(h, 10, 40);
+  assert.equal(h.v, -6, 'a quarter step does nothing yet');
+  hitGate(h, 30, 40);
+  assert.equal(h.v, -5, 'the step completes across hits');
+  hitGate(h, 200, 40);
+  assert.equal(h.v, 0, 'a big hit moves several steps');
+  const m = { kind: 'mul', v: 2 };
+  hitGate(m, 40 * 8, 40);
+  assert.equal(m.v, 3, 'eight steps move a multiplier');
+  const w = { kind: 'weapon', v: 'rail' };
+  hitGate(w, 1000, 1);
+  assert.equal(w.v, 'rail');
+});
+
+test('a gate step is a slice of the squad\'s fire, whatever its size', () => {
+  const st = statsFor(fresh());
+  for (const count of [5, 50, 300]) {
+    const dps = st.dmg * count / st.interval;
+    const step = gateStepFor(st, WEAPONS.rifle, count);
+    assert.ok(Math.abs(step / dps - GATE_STEP_SECONDS) < 1e-9, 'step is ' + GATE_STEP_SECONDS + 's of fire at squad ' + count);
+  }
+  // a -8 gate needs eight steps: under three seconds of fire, over two
+  assert.ok(8 * GATE_STEP_SECONDS < 3 && 8 * GATE_STEP_SECONDS > 2);
+  // and -8 to +14 cannot happen inside a gate's descent (about 6 seconds)
+  assert.ok(22 * GATE_STEP_SECONDS > 6);
+  assert.ok(gateStepFor(st, WEAPONS.shotgun, 10) > gateStepFor(st, WEAPONS.rifle, 10), 'a stronger weapon pays a bigger step, so it does not turn gates faster');
+});
+
+test('a multiplier is true when small and bounded when big', () => {
+  assert.equal(applyGate(10, { kind: 'mul', v: 3 }, 0).count, 30);
+  assert.equal(applyGate(30, { kind: 'mul', v: 2 }, 0).count, 60);
+  const big = applyGate(150, { kind: 'mul', v: 3 }, 0);
+  assert.equal(big.gain, MUL_GAIN_CAP);
+  assert.equal(big.count, SQUAD_CAP, 'and the cap still holds');
+  assert.equal(applyGate(100, { kind: 'mul', v: 2 }, 0).count, 100 + MUL_GAIN_CAP);
 });
 
 test('the squad cap holds through a weapon gate', () => {

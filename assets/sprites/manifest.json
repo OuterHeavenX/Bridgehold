@@ -1,0 +1,71 @@
+{
+  "parts": {
+    "brute_0": {
+      "file": "brute_0.png",
+      "note": "faces down the lane; walk frame A",
+      "pixelsPerUnit": 61.935,
+      "size": 192
+    },
+    "brute_1": {
+      "file": "brute_1.png",
+      "note": "faces down the lane; walk frame B",
+      "pixelsPerUnit": 61.935,
+      "size": 192
+    },
+    "husk_0": {
+      "file": "husk_0.png",
+      "note": "faces down the lane; walk frame A",
+      "pixelsPerUnit": 60.952,
+      "size": 128
+    },
+    "husk_1": {
+      "file": "husk_1.png",
+      "note": "faces down the lane; walk frame B",
+      "pixelsPerUnit": 60.952,
+      "size": 128
+    },
+    "lamp": {
+      "file": "lamp.png",
+      "note": "rail lamp post",
+      "pixelsPerUnit": 30.0,
+      "size": 96
+    },
+    "muzzle": {
+      "file": "muzzle.png",
+      "note": "additive flash, drawn at the rifle tip",
+      "pixelsPerUnit": 45.714,
+      "size": 64
+    },
+    "runner_0": {
+      "file": "runner_0.png",
+      "note": "faces down the lane; sprint frame A",
+      "pixelsPerUnit": 60.952,
+      "size": 128
+    },
+    "runner_1": {
+      "file": "runner_1.png",
+      "note": "faces down the lane; sprint frame B",
+      "pixelsPerUnit": 60.952,
+      "size": 128
+    },
+    "soldier_0": {
+      "file": "soldier_0.png",
+      "note": "faces up the lane; walk frame A",
+      "pixelsPerUnit": 60.952,
+      "size": 128
+    },
+    "soldier_1": {
+      "file": "soldier_1.png",
+      "note": "faces up the lane; walk frame B",
+      "pixelsPerUnit": 60.952,
+      "size": 128
+    },
+    "walker": {
+      "file": "walker.png",
+      "note": "the frozen walker; ground point at centre",
+      "pixelsPerUnit": 80.0,
+      "size": 512
+    }
+  },
+  "tilt": 52.0
+}

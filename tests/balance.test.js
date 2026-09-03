@@ -47,14 +47,15 @@ test('enemy health grows with the level and within a run', () => {
   assert.ok(huskHP(2, 0) > huskHP(1, 0));
   assert.ok(huskHP(1, RUN_T) > huskHP(1, 0));
   assert.ok(bossHP(5) > bossHP(4));
-  assert.equal(bossHP(1), 6000);
+  assert.equal(bossHP(1), 12000);
   assert.equal(coinPerKill(1), 1);
   assert.ok(coinPerKill(8) > coinPerKill(4));
 });
 
-test('the walker is beatable on level 1 with a modest squad', () => {
+test('the walker is beatable on level 1 with a forty-soldier squad, and a set piece for a big one', () => {
   const st = statsFor(fresh());
-  const timeToKill = bossHP(1) / squadDps(st, 20);
+  const timeToKill = bossHP(1) / squadDps(st, 40);
+  assert.ok(bossHP(1) / squadDps(st, 120) > 4, 'even a large squad watches the number fall for seconds');
   assert.ok(timeToKill < bossTimeToLine(), `kill in ${timeToKill.toFixed(1)}s before ${bossTimeToLine().toFixed(1)}s`);
 });
 
@@ -103,7 +104,7 @@ test('the quartermaster softens every add gate', () => {
 });
 
 test('gates apply, clamp at the cap, and never go below zero', () => {
-  assert.deepEqual(applyGate(10, { kind: 'mul', v: 3 }, 0), { count: 30, text: '×3', good: true });
-  assert.equal(applyGate(200, { kind: 'mul', v: 3 }, 0).count, SQUAD_CAP);
+  assert.deepEqual(applyGate(10, { kind: 'mul', v: 3 }, 0), { count: 30, text: '×3', good: true, gain: 20 });
+  assert.equal(applyGate(SQUAD_CAP, { kind: 'mul', v: 3 }, 0).count, SQUAD_CAP);
   assert.deepEqual(applyGate(3, { kind: 'add', v: -8 }, 0), { count: 0, text: '-8', good: false });
 });

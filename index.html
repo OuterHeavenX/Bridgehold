@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Bridgehold</title>
   <meta name="description" content="Hold the line for sixty seconds. A lane-runner horde shooter with no ads and no microtransactions.">
+  <meta name="theme-color" content="#0a1020">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@600;700&family=Barlow:wght@400;500;600;700&display=swap">
   <link rel="stylesheet" href="styles.css">
@@ -15,16 +16,24 @@
       <canvas id="cv" width="360" height="640" aria-label="Bridgehold game canvas"></canvas>
 
       <section id="home" class="screen">
-        <h1><small>Hold the line for sixty seconds</small>BRIDGEHOLD</h1>
+        <header class="hero">
+          <div class="hero-art" aria-hidden="true">
+            <img class="hero-walker" src="assets/sprites/walker.png" alt="">
+            <img class="hero-soldier s1" src="assets/sprites/soldier_0.png" alt="">
+            <img class="hero-soldier s2" src="assets/sprites/soldier_1.png" alt="">
+            <img class="hero-soldier s3" src="assets/sprites/soldier_0.png" alt="">
+          </div>
+          <h1><small>Hold the line for sixty seconds</small>BRIDGEHOLD</h1>
+        </header>
         <p class="lede">Steer the squad. Shoot the gates until they turn kind. The bridge does the rest.</p>
         <div class="stats">
           <div class="stat"><b id="hLevel">1</b><span>Level</span></div>
           <div class="stat gold"><b id="hCoins">0</b><span>Coins</span></div>
           <div class="stat"><b id="hBest">0</b><span>Best squad</span></div>
         </div>
-        <div class="label">Bridge</div>
+        <div class="label">The bridge</div>
         <div class="levels" id="levels"></div>
-        <div class="label">Camp upgrades</div>
+        <div class="label">Camp</div>
         <div class="ups" id="ups"></div>
         <div class="label">Earned by playing</div>
         <div class="unls" id="unlocks"></div>
@@ -32,14 +41,16 @@
           <button class="ghost small" id="sound" aria-pressed="true">Sound on</button>
           <button class="ghost small" id="motion" aria-pressed="false">Motion full</button>
         </div>
-        <button class="cta" id="deploy">Deploy</button>
+        <div class="cta-wrap"><button class="cta" id="deploy">Deploy</button></div>
         <button class="reset" id="reset">Reset save</button>
       </section>
 
       <section id="end" class="screen" hidden>
-        <h1><small id="eSub">Level 1</small><span id="eTitle">LINE HELD</span></h1>
+        <header class="result">
+          <h1><small id="eSub">Level 1</small><span id="eTitle">LINE HELD</span></h1>
+        </header>
         <p class="lede" id="eLede"></p>
-        <div class="stats">
+        <div class="stats tall">
           <div class="stat gold"><b id="eCoins">0</b><span>Coins earned</span></div>
           <div class="stat"><b id="eKills">0</b><span>Husks down</span></div>
           <div class="stat"><b id="ePeak">0</b><span>Peak squad</span></div>
