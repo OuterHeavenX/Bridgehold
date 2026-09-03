@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import {
   DEFAULT_SAVE, ENEMIES, WEAPONS, SQUAD_CAP, MUL_GAIN_CAP, HELPERS, helpersFor, UPGRADES,
   packKind, packSize, weaponDps, gateHalf, hitGate, applyGate, recordRun, gateStepFor, GATE_STEP_SECONDS, statsFor,
-  WHEEL, wheelStepFor, COLOSSUS, SURGE,
+  WHEEL, wheelStepFor, COLOSSUS, SURGE, STAGES, stageFor,
 } from '../src/balance.js';
 
 const fresh = () => ({ ...DEFAULT_SAVE, up: { ...DEFAULT_SAVE.up }, levels: {}, settings: { ...DEFAULT_SAVE.settings } });
@@ -149,4 +149,15 @@ test('the surge doubles packs under a cap, and the colossus outlasts it on the l
   const laneTime = (548 + 160) / COLOSSUS.speed;
   assert.ok(laneTime > SURGE.duration * 0.8, 'the giant is on the lane for most of the surge');
   assert.ok(COLOSSUS.dmg * 1 >= 20, 'a stomp is worth at least twenty soldier shots');
+});
+
+test('every level from 1 to 20 belongs to exactly one stage, and past 20 the last stage continues', () => {
+  for (let L = 1; L <= 20; L++) assert.equal(STAGES.filter(s => L >= s.from && L <= s.to).length, 1, 'level ' + L);
+  assert.equal(stageFor(1).id, 'bridge'); assert.equal(stageFor(10).id, 'bridge');
+  assert.equal(stageFor(11).id, 'crypt'); assert.equal(stageFor(20).id, 'crypt');
+  assert.equal(stageFor(35).id, 'crypt');
+  for (const st of STAGES) {
+    for (const role of ['husk', 'runner', 'brute']) { assert.ok(st.skins[role]); assert.ok(st.mods[role].hp > 0 && st.mods[role].speed > 0); }
+    assert.ok(st.boss && st.bossName);
+  }
 });

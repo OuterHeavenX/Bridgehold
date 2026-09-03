@@ -77,6 +77,19 @@ export const bossReward = level => Math.round(40 * levelScale(level));
 export const clearBonus = level => Math.round(60 * levelScale(level));
 export const coinPerKill = level => Math.ceil(levelScale(level));
 
+/* Stages. Ten levels each; a stage names its scene, its boss sprite, and
+   the sprite family that plays each enemy role, with per-role multipliers
+   on the baseline so a stage can have its own feel without new rules. */
+export const STAGES = [
+  { id: 'bridge', name: 'The Bridge', from: 1, to: 10, boss: 'walker', bossName: 'THE WALKER',
+    skins: { husk: 'husk', runner: 'runner', brute: 'brute' },
+    mods:  { husk: { hp: 1, speed: 1 }, runner: { hp: 1, speed: 1 }, brute: { hp: 1, speed: 1 } } },
+  { id: 'crypt', name: 'The Ossuary', from: 11, to: 20, boss: 'reliquary', bossName: 'THE RELIQUARY',
+    skins: { husk: 'bonewalker', runner: 'skull', brute: 'bonelord' },
+    mods:  { husk: { hp: 1.1, speed: 0.95 }, runner: { hp: 0.8, speed: 1.15 }, brute: { hp: 1.2, speed: 0.9 } } },
+];
+export const stageFor = level => STAGES.find(s => level >= s.from && level <= s.to) || STAGES[STAGES.length - 1];
+
 /* Enemy kinds, as multipliers of the husk baseline. `touch` is the soldiers
    lost when one reaches the line; a brute instead stops there and chews. */
 export const ENEMIES = Object.freeze({

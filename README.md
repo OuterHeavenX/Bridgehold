@@ -91,6 +91,12 @@ Two allies take the flanks of the line once earned, and are deployed on every ru
 - **Frost lantern** after clearing level 8. A cold lamp on the right flank; everything in
   the last 150 pixels of the bridge walks at two thirds speed.
 
+**Stages.** The campaign is ten-level stages. Levels 1 to 10 are the bridge. Levels 11 to
+20 are the Ossuary, a torch-lit crypt: bonewalkers with shield and blade, tumbling
+skulls, armoured bonelords, and the Reliquary, a sarcophagus with the lich on its lid,
+in place of the walker. The rules are the same in every stage; the cast and the room
+change.
+
 Cleared levels stay open on the home screen with your best squad on each, so an old
 level is worth replaying. Only clearing the frontier level opens the next one.
 

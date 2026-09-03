@@ -568,6 +568,159 @@ def frostlamp():
     ball(0.42, loc=(0, 0, 2.42), material=halo)
 
 
+BONE = (0.90, 0.88, 0.78)
+BONE_D = (0.55, 0.52, 0.42)
+RUST = (0.42, 0.22, 0.14)
+GOLD = (0.85, 0.62, 0.20)
+CRIMSON = (0.55, 0.08, 0.10)
+
+
+def skull(frame):
+    """A rolling skull: the crypt's runner. It tumbles, so the frames turn it."""
+    bone = mat("skull", BONE, roughness=0.6)
+    dark = mat("skull_d", (0.12, 0.10, 0.10), roughness=0.9)
+    rot = 0.0 if frame == 0 else math.radians(35)
+    ball(0.42, loc=(0, 0, 0.44), material=bone, scale=(1, 1.05, 1.1))
+    box((0.5, 0.36, 0.26), loc=(0, -0.16, 0.2), rot=(rot, 0, 0), material=bone, bevel=0.03)   # jaw
+    for sx in (-0.15, 0.15):
+        ball(0.11, loc=(sx, -0.36, 0.5), material=dark)
+        ball(0.05, loc=(sx, -0.44, 0.5), material=mat("seye", (0.4, 1.0, 0.5), emission=(0.35, 1.0, 0.45), strength=16))
+    for sx in (-0.12, -0.04, 0.04, 0.12):
+        box((0.05, 0.04, 0.09), loc=(sx, -0.38, 0.3), material=bone, bevel=0)
+    cone(0.05, 0.0, 0.1, loc=(0, -0.42, 0.42), rot=(math.radians(-90), 0, 0), material=bone)   # nose ridge
+
+
+def bonewalker(frame):
+    """A skeleton warrior with a rusted blade and a round shield: the crypt's husk."""
+    stride = 0.14 if frame == 0 else -0.14
+    bone = mat("bone", BONE, roughness=0.6)
+    dark = mat("bone_d", BONE_D, roughness=0.7)
+    rust = mat("rust", RUST, metallic=0.5, roughness=0.6)
+    for sx, sy in ((-0.13, stride), (0.13, -stride)):
+        cyl(0.05, 0.55, loc=(sx, sy, 0.28), material=bone, bevel=0)
+        ball(0.06, loc=(sx, sy, 0.55), material=dark)
+    # pelvis, spine, ribs
+    box((0.3, 0.18, 0.12), loc=(0, 0, 0.6), material=dark, bevel=0.02)
+    cyl(0.04, 0.55, loc=(0, 0.02, 0.9), material=bone, bevel=0)
+    for i in range(4):
+        bpy.ops.mesh.primitive_torus_add(major_radius=0.17 - i * 0.02, minor_radius=0.025, location=(0, 0.02, 0.78 + i * 0.09), major_segments=20, minor_segments=6)
+        finish(bpy.context.object, bone, 0, smooth=True)
+    # shoulders, arms: shield arm forward-left, sword arm raised right
+    for sx in (-1, 1):
+        ball(0.07, loc=(sx * 0.2, 0.02, 1.16), material=dark)
+    cyl(0.04, 0.45, loc=(-0.25, -0.2, 1.0), rot=(math.radians(-70), 0, 0), material=bone, bevel=0)
+    cyl(0.04, 0.45, loc=(0.28, -0.1, 1.2), rot=(math.radians(-40), 0, 0), material=bone, bevel=0)
+    # round shield with a boss, a chipped sword
+    cyl(0.22, 0.05, loc=(-0.3, -0.42, 0.95), rot=(math.radians(90), 0, 0), material=rust)
+    ball(0.06, loc=(-0.3, -0.46, 0.95), material=mat("boss", GOLD, metallic=0.7, roughness=0.4))
+    box((0.05, 0.7, 0.12), loc=(0.34, -0.45, 1.4), rot=(math.radians(-30), 0, 0), material=mat("blade", (0.55, 0.58, 0.6), metallic=0.8, roughness=0.35), bevel=0)
+    box((0.06, 0.16, 0.06), loc=(0.32, -0.16, 1.28), material=rust, bevel=0)
+    # skull with a dented helm and green eyes
+    ball(0.17, loc=(0, 0, 1.36), material=bone)
+    ball(0.19, loc=(0, 0.02, 1.42), material=rust, scale=(1, 1, 0.6))
+    for sx in (-0.06, 0.06):
+        ball(0.03, loc=(sx, -0.15, 1.36), material=mat("beye", (0.4, 1.0, 0.5), emission=(0.35, 1.0, 0.45), strength=16))
+
+
+def bonelord(frame):
+    """An armoured skeletal knight with a great mace: the crypt's brute."""
+    stride = 0.1 if frame == 0 else -0.1
+    bone = mat("lbone", BONE, roughness=0.6)
+    plate = mat("lplate", (0.30, 0.30, 0.34), metallic=0.75, roughness=0.4)
+    gold = mat("lgold", GOLD, metallic=0.8, roughness=0.35)
+    cloth = mat("lcloth", CRIMSON, roughness=0.9)
+    for sx, sy in ((-0.3, stride), (0.3, -stride)):
+        cyl(0.14, 0.7, loc=(sx, sy, 0.35), material=plate)
+        box((0.36, 0.5, 0.2), loc=(sx, sy + 0.1, 0.1), material=plate, bevel=0.02)
+    # tabard and cuirass
+    box((1.0, 0.6, 0.9), loc=(0, 0, 1.15), material=plate, bevel=0.04)
+    box((0.5, 0.05, 1.1), loc=(0, -0.33, 0.9), material=cloth, bevel=0)
+    box((0.6, 0.05, 0.2), loc=(0, -0.34, 1.45), material=gold, bevel=0)
+    # pauldrons with spikes, chains
+    for sx in (-1, 1):
+        ball(0.3, loc=(sx * 0.62, 0, 1.55), material=plate)
+        cone(0.08, 0.0, 0.3, loc=(sx * 0.75, 0, 1.85), material=gold)
+        cyl(0.13, 0.9, loc=(sx * 0.7, -0.2, 0.95), rot=(math.radians(-15), 0, 0), material=plate)
+    # the great mace, held out to the right
+    cyl(0.05, 1.3, loc=(0.85, -0.5, 1.1), rot=(math.radians(-60), 0, 0), material=plate, bevel=0)
+    ball(0.26, loc=(0.85, -1.0, 1.65), material=plate)
+    for i in range(6):
+        a = i * math.tau / 6
+        cone(0.06, 0.0, 0.2, loc=(0.85 + math.cos(a) * 0.3, -1.0, 1.65 + math.sin(a) * 0.3), rot=(0, a + math.radians(90), 0), material=gold)
+    # horned helm over a skull
+    ball(0.26, loc=(0, -0.2, 1.8), material=bone)
+    ball(0.3, loc=(0, -0.18, 1.86), material=plate, scale=(1, 1, 0.7))
+    for sx in (-1, 1):
+        cone(0.07, 0.0, 0.45, loc=(sx * 0.32, -0.2, 2.05), rot=(0, sx * math.radians(35), 0), material=gold)
+    for sx in (-0.09, 0.09):
+        ball(0.045, loc=(sx, -0.44, 1.8), material=mat("leye", (1.0, 0.35, 0.2), emission=(1.0, 0.3, 0.15), strength=20))
+
+
+def reliquary():
+    """The crypt's walker: a great stone sarcophagus sliding down the lane with
+    the lich standing on its lid. Same footprint as the frozen walker."""
+    stone = mat("rstone", (0.42, 0.40, 0.44), roughness=0.8)
+    dark = mat("rstone_d", (0.22, 0.20, 0.24), roughness=0.85)
+    gold = mat("rgold", GOLD, metallic=0.8, roughness=0.35)
+    bone = mat("rbone", BONE, roughness=0.6)
+    cloth = mat("rcloth", CRIMSON, roughness=0.9)
+    glow = mat("rglow", (0.4, 1.0, 0.5), emission=(0.35, 1.0, 0.45), strength=14)
+    # the box, its lid, gold banding, a skull relief on the front
+    box((4.6, 3.2, 2.4), loc=(0, 0, 1.2), material=stone, bevel=0.12)
+    box((4.8, 3.4, 0.5), loc=(0, 0, 2.6), material=dark, bevel=0.08)
+    for y in (-1.2, 0.0, 1.2):
+        box((4.7, 0.18, 2.5), loc=(0, y, 1.2), material=gold, bevel=0.02)
+    ball(0.7, loc=(0, -1.62, 1.4), material=bone, scale=(1, 0.3, 1.1))
+    for sx in (-0.25, 0.25):
+        ball(0.14, loc=(sx, -1.85, 1.5), material=glow)
+    # green fire in braziers at the four corners
+    for sx in (-1, 1):
+        for sy in (-1, 1):
+            cyl(0.3, 0.4, loc=(sx * 2.0, sy * 1.3, 3.0), verts=8, material=dark)
+            ball(0.32, loc=(sx * 2.0, sy * 1.3, 3.45), material=glow, scale=(1, 1, 1.5))
+    # the lich: robed, hooded, a staff with a skull, standing on the lid
+    cone(0.7, 0.35, 1.9, loc=(0, 0.2, 3.8), material=cloth)
+    ball(0.42, loc=(0, 0.2, 4.9), material=cloth)
+    ball(0.28, loc=(0, -0.05, 4.85), material=bone)
+    for sx in (-0.1, 0.1):
+        ball(0.05, loc=(sx, -0.3, 4.9), material=glow)
+    cyl(0.06, 3.0, loc=(0.7, -0.3, 4.3), material=dark, bevel=0)
+    ball(0.28, loc=(0.7, -0.3, 5.9), material=bone)
+    ball(0.36, loc=(0.7, -0.3, 6.1), material=glow, scale=(1, 1, 1.4))
+    for sx in (-1, 1):
+        ball(0.3, loc=(sx * 0.8, 0.2, 4.4), material=cloth)
+
+
+def torch():
+    """A wall torch: an iron bracket and a warm flame."""
+    iron = mat("tiron", (0.2, 0.2, 0.24), metallic=0.7, roughness=0.5)
+    cyl(0.06, 1.2, loc=(0, 0, 0.6), rot=(math.radians(-20), 0, 0), material=iron)
+    cyl(0.14, 0.3, loc=(0, -0.25, 1.25), material=iron)
+    ball(0.22, loc=(0, -0.25, 1.55), material=mat("flame", (1.0, 0.6, 0.15), emission=(1.0, 0.55, 0.12), strength=30), scale=(1, 1, 1.7))
+    ball(0.12, loc=(0, -0.25, 1.85), material=mat("flame2", (1.0, 0.85, 0.4), emission=(1.0, 0.85, 0.4), strength=40), scale=(1, 1, 1.6))
+
+
+def brazier():
+    """A stone bowl on a plinth holding a green crystal."""
+    stone = mat("bstone", (0.35, 0.34, 0.38), roughness=0.85)
+    cyl(0.75, 0.3, loc=(0, 0, 0.15), verts=8, material=stone)
+    cyl(0.5, 0.5, loc=(0, 0, 0.55), verts=8, material=stone)
+    cyl(0.85, 0.35, loc=(0, 0, 0.95), verts=12, material=stone)
+    crystal = mat("crystal", (0.4, 1.0, 0.55), emission=(0.3, 1.0, 0.45), strength=12, roughness=0.2)
+    cone(0.42, 0.0, 1.5, loc=(0, 0, 1.8), verts=6, material=crystal)
+    cone(0.22, 0.0, 0.8, loc=(0.45, 0.2, 1.4), rot=(0, math.radians(25), 0), verts=6, material=crystal)
+    cone(0.18, 0.0, 0.7, loc=(-0.4, -0.2, 1.35), rot=(0, math.radians(-30), 0), verts=6, material=crystal)
+
+
+def coffin():
+    """A stone coffin with a skull relief, leaning against the wall."""
+    stone = mat("cstone", (0.30, 0.30, 0.36), roughness=0.85)
+    trim = mat("ctrim", (0.55, 0.52, 0.42), roughness=0.7)
+    box((1.4, 0.6, 2.6), loc=(0, 0, 1.3), rot=(math.radians(-12), 0, 0), material=stone, bevel=0.06)
+    box((1.1, 0.1, 2.2), loc=(0, -0.32, 1.35), rot=(math.radians(-12), 0, 0), material=trim, bevel=0.02)
+    ball(0.3, loc=(0, -0.5, 1.9), material=mat("cskull", BONE, roughness=0.6), scale=(1, 0.5, 1.1))
+
+
 def lamp():
     """A bridge lamp post, drawn along the rails."""
     post = mat("post", (0.32, 0.35, 0.42), metallic=0.6, roughness=0.5)
@@ -594,6 +747,17 @@ PARTS = {
     "colossus_0": (lambda: colossus(0), 320, 9.0, "the giant; faces up the lane; walk frame A"),
     "colossus_1": (lambda: colossus(1), 320, 9.0, "the giant; faces up the lane; walk frame B"),
     "wheel":     (wheel, 96, 2.6, "the bay's valve wheel, seen from above; rotate to spin"),
+    # the crypt, levels 11 to 20
+    "skull_0":      (lambda: skull(0), 128, 1.6, "faces down the lane; tumble frame A"),
+    "skull_1":      (lambda: skull(1), 128, 1.6, "faces down the lane; tumble frame B"),
+    "bonewalker_0": (lambda: bonewalker(0), 160, 2.1, "faces down the lane; walk frame A"),
+    "bonewalker_1": (lambda: bonewalker(1), 160, 2.1, "faces down the lane; walk frame B"),
+    "bonelord_0":   (lambda: bonelord(0), 224, 3.1, "faces down the lane; walk frame A"),
+    "bonelord_1":   (lambda: bonelord(1), 224, 3.1, "faces down the lane; walk frame B"),
+    "reliquary":    (reliquary, 512, 7.6, "the crypt's walker; ground point at centre"),
+    "torch":        (torch, 96, 2.6, "wall torch, drawn on the crypt walls"),
+    "brazier":      (brazier, 128, 3.6, "green crystal brazier, drawn along the crypt walls"),
+    "coffin":       (coffin, 128, 3.4, "stone coffin, drawn against the crypt walls"),
 }
 
 

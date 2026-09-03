@@ -41,9 +41,17 @@ test('the runtime only draws parts that exist', () => {
   const js = fs.readFileSync(path.join(ROOT, 'src', 'game.js'), 'utf8');
   const literal = [...js.matchAll(/art\.draw\(ctx, '([a-z_0-9]+)'[,)]/g)].map(m => m[1]);
   for (const name of literal) assert.ok(name in manifest.parts, name + ' is in the manifest');
-  for (const name of ['sentinel', 'frostlamp', 'walker', 'lamp', 'muzzle', 'wheel']) assert.ok(literal.includes(name), name + ' is drawn by the runtime');
+  for (const name of ['sentinel', 'frostlamp', 'lamp', 'muzzle', 'wheel', 'torch', 'brazier', 'coffin']) assert.ok(literal.includes(name), name + ' is drawn by the runtime');
   // families built as kind + '_' + frame
-  for (const kind of ['husk', 'runner', 'brute', 'soldier', 'colossus']) for (const f of [0, 1]) {
+  for (const kind of ['husk', 'runner', 'brute', 'soldier', 'colossus', 'skull', 'bonewalker', 'bonelord']) for (const f of [0, 1]) {
     assert.ok(`${kind}_${f}` in manifest.parts, `${kind}_${f} is in the manifest`);
+  }
+});
+
+test('every stage skin and boss is rendered', async () => {
+  const { STAGES } = await import('../src/balance.js');
+  for (const st of STAGES) {
+    assert.ok(st.boss in manifest.parts, st.id + ' boss ' + st.boss);
+    for (const skin of Object.values(st.skins)) for (const f of [0, 1]) assert.ok(`${skin}_${f}` in manifest.parts, st.id + ' skin ' + skin);
   }
 });

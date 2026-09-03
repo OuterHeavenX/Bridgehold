@@ -122,3 +122,13 @@ body:not(.has-art) .hero-art { display: none; }
 /* allies */
 .unl.ally.on .unl-mark { background: var(--ice); border-color: var(--ice); color: #ffffff; }
 .unl.ally.on .n { color: var(--ice); }
+
+/* stages */
+.stage-mark { flex: 0 0 auto; width: 34px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; border-radius: 10px; background: var(--panel2); border: 1px dashed var(--line2); color: var(--muted); padding: 6px 2px; }
+.stage-mark b { font-family: "Chakra Petch", sans-serif; font-size: 14px; line-height: 1; }
+.stage-mark span { writing-mode: vertical-rl; transform: rotate(180deg); font-size: 8px; letter-spacing: .12em; text-transform: uppercase; }
+.stage-mark.crypt { background: #2a2733; border-color: #4a4556; color: #9fd8b0; }
+.stage-crypt .hero { background: linear-gradient(180deg, #1a1722 0%, #3a3642 60%, rgba(238, 244, 248, 0) 100%); }
+.stage-crypt .hero::before { background: radial-gradient(180px 90px at 84% 10%, rgba(120, 255, 160, .45), rgba(120, 255, 160, 0) 70%), radial-gradient(140px 60px at 22% 78%, rgba(255, 170, 70, .35), rgba(255, 170, 70, 0) 70%); }
+.stage-crypt .hero h1 { color: #f2f4f8; }
+.stage-crypt .hero h1 small { color: #9fd8b0; }

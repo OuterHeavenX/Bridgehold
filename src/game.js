@@ -1,7 +1,7 @@
 import {
   RUN_T, LINE_Y, DEFAULT_SAVE, UPGRADES, UNLOCKS, ENEMIES, WEAPONS, BOSS, HELPERS,
   cost, statsFor, huskHP, bossHP, bossReward, clearBonus, coinPerKill,
-  packKind, packSize, packInterval, GATE_INTERVAL, gateStepFor, gateHalf, helpersFor,
+  packKind, packSize, packInterval, GATE_INTERVAL, gateStepFor, gateHalf, helpersFor, stageFor, STAGES,
   WHEEL, wheelStepFor, COLOSSUS, SURGE, hitGate, gateValue, applyGate, recordRun,
 } from './balance.js';
 import { createAudio } from './audio.js';
@@ -51,6 +51,8 @@ function renderHome() {
 
   const strip = $('levels'); strip.innerHTML = '';
   for (let L = 1; L <= save.level; L++) {
+    const stg = stageFor(L);
+    if (L === stg.from) { const m = document.createElement('div'); m.className = 'stage-mark' + (stg.id === 'crypt' ? ' crypt' : ''); m.innerHTML = `<b>${STAGES.indexOf(stg) + 1}</b><span>${stg.name}</span>`; strip.appendChild(m); }
     const b = document.createElement('button');
     const entry = save.levels[L];
     const front = L === save.level;
@@ -61,7 +63,11 @@ function renderHome() {
     strip.appendChild(b);
   }
   requestAnimationFrame(() => { const s = strip.querySelector('.sel'); if (s) s.scrollIntoView({ inline: 'center', block: 'nearest' }); });
-  $('deploy').innerHTML = `Deploy <small>level ${save.selected}</small>`;
+  const selStage = stageFor(save.selected);
+  $('deploy').innerHTML = `Deploy <small>level ${save.selected} · ${selStage.name}</small>`;
+  document.body.classList.toggle('stage-crypt', selStage.id === 'crypt');
+  const heroImg = document.querySelector('.hero-walker');
+  if (heroImg) heroImg.src = 'assets/sprites/' + selStage.boss + '.png';
 
   const box = $('ups'); box.innerHTML = '';
   for (const u of UPGRADES) {
@@ -119,7 +125,7 @@ function startRun() {
   const st = statsFor(save);
   const level = Math.min(save.selected, save.level);
   G = {
-    t: 0, level, st, weapon: 'rifle',
+    t: 0, level, st, stage: stageFor(level), weapon: 'rifle',
     cx: W / 2, tx: W / 2, count: st.squad, peak: st.squad,
     fireT: 0, packT: 2.6, gateT: 2.4, muzzleT: 0, banner: 1.6,
     bullets: [], husks: [], gates: [], boss: null, floats: [], parts: [],
@@ -137,11 +143,11 @@ function startRun() {
 // ---------- spawning ----------
 const rnd = (a, b) => a + Math.random() * (b - a);
 function spawnPack() {
-  const kind = packKind(G.level, Math.random()), E = ENEMIES[kind];
+  const kind = packKind(G.level, Math.random()), E = ENEMIES[kind], mod = G.stage.mods[kind], skin = G.stage.skins[kind];
   const size = packSize(kind, G.level, Math.random(), G.surge > 0);
-  const hp = huskHP(G.level, G.t) * E.hp, spd = (rnd(52, 76) + G.level * 2.5) * E.speed;
+  const hp = huskHP(G.level, G.t) * E.hp * mod.hp, spd = (rnd(52, 76) + G.level * 2.5) * E.speed * mod.speed;
   const pack = { units: [], kind };
-  const unit = (x, y) => ({ x, y, hp, max: hp, vy: spd * rnd(0.92, 1.08), wob: rnd(0, 6.28), pack, kind, r: E.r, chewT: 0, parked: false, hurt: 0 });
+  const unit = (x, y) => ({ x, y, hp, max: hp, vy: spd * rnd(0.92, 1.08), wob: rnd(0, 6.28), pack, kind, skin, r: E.r, chewT: 0, parked: false, hurt: 0 });
   if (kind === 'runner') {
     const cx = rnd(LANE_L + 24, LANE_R - 24);
     for (let i = 0; i < size; i++) pack.units.push(unit(cx + rnd(-14, 14), -230 - i * 16 - rnd(0, 6)));
@@ -163,7 +169,7 @@ function spawnGate() {
 function spawnBoss() {
   const hp = bossHP(G.level);
   G.boss = { x: W / 2, y: BOSS.startY, w: BOSS.w, h: BOSS.h, hp, max: hp, vy: BOSS.vy, atLine: false, hitT: 0, wob: 0, crushT: 0, cracks: [], nextCrack: 0.9 };
-  float(W / 2, 140, 'THE WALKER', '#bdf3ff', 30);
+  float(W / 2, 140, G.stage.bossName, G.stage.id === 'crypt' ? '#7dffa0' : '#bdf3ff', 30);
 }
 function addCrack(b) {
   const side = Math.floor(rnd(0, 4)), pts = [];
@@ -606,6 +612,20 @@ function buildLayers() {
       g.fillStyle = `rgba(255,255,255,${0.10 + (i % 5) * 0.05})`; g.fillRect(x, y, len, 1 + t);
     }
   });
+  makeLayer('crypt', W, H, (g, w, h) => {
+    g.fillStyle = '#0c0a12'; g.fillRect(0, 0, w, h);
+    // the far arch, lit green from beyond
+    const arch = g.createRadialGradient(P.VPX, HORIZON + 4, 2, P.VPX, HORIZON + 4, 130);
+    arch.addColorStop(0, 'rgba(120,255,160,.55)'); arch.addColorStop(0.25, 'rgba(70,200,120,.22)'); arch.addColorStop(1, 'rgba(30,80,60,0)');
+    g.fillStyle = arch; g.fillRect(0, 0, w, h);
+    // hanging dust, faint
+    for (let i = 0; i < 60; i++) { const x = (i * 97 + 13) % w, y = (i * 53 + 7) % (HORIZON + 60); g.fillStyle = 'rgba(160,200,170,.18)'; g.fillRect(x, y, 1.5, 1.5); }
+  });
+  makeLayer('vignetteDark', W, H, (g, w, h) => {
+    const v = g.createRadialGradient(w / 2, h * 0.55, h * 0.3, w / 2, h * 0.55, h * 0.85);
+    v.addColorStop(0, 'rgba(4,3,8,0)'); v.addColorStop(1, 'rgba(4,3,8,.62)');
+    g.fillStyle = v; g.fillRect(0, 0, w, h);
+  });
   makeLayer('vignette', W, H, (g, w, h) => {
     const v = g.createRadialGradient(w / 2, h * 0.5, h * 0.4, w / 2, h * 0.5, h * 0.85);
     v.addColorStop(0, 'rgba(20,30,50,0)'); v.addColorStop(1, 'rgba(20,30,50,.28)');
@@ -653,6 +673,84 @@ function drawBridge() {
         ctx.fillStyle = '#7a8090'; ctx.fillRect(p.x - 1.5 * p.k, p.y - 34 * p.k, 3 * p.k, 34 * p.k);
       }
     }
+  }
+  // the line
+  const a = proj(LANE_L, LINE_Y), b = proj(LANE_R, LINE_Y);
+  const lg = ctx.createLinearGradient(a.x, 0, b.x, 0);
+  lg.addColorStop(0, 'rgba(255,170,40,0)'); lg.addColorStop(0.5, 'rgba(255,170,40,.85)'); lg.addColorStop(1, 'rgba(255,170,40,0)');
+  ctx.fillStyle = lg; ctx.fillRect(a.x, a.y - 1.5, b.x - a.x, 3);
+}
+function bayTone() {
+  return G.stage.id === 'crypt'
+    ? { edge: '#2a2733', far: '#3b3746', near: '#4a4556', walk: '#3f3a4a', wall: '#221f2a', cap: '#5a5566' }
+    : { edge: '#9f9a90', far: '#b9b3a6', near: '#cfc8b8', walk: '#c4bdae', wall: '#8f8a7e', cap: '#d9d3c5' };
+}
+/* Levels 11 to 20: a crypt corridor. Flagstones between stone walls with
+   torches, crystal braziers and coffins, and a green-lit arch at the end. */
+function drawCrypt() {
+  ctx.drawImage(layers.crypt, 0, 0);
+  const near = H + 20, now = performance.now();
+  // floor: slate flagstones with joints that converge
+  const floor = ctx.createLinearGradient(0, HORIZON, 0, H);
+  floor.addColorStop(0, '#1d1a24'); floor.addColorStop(0.3, '#2f2c38'); floor.addColorStop(1, '#3d3946');
+  poly(quad(LANE_L - 16, LANE_R + 16, FAR, near), floor);
+  const cols = [LANE_L - 16, LANE_L + 30, LANE_L + 76, P.VPX, LANE_R - 76, LANE_R - 30, LANE_R + 16];
+  for (let y = LINE_Y + 80, row = 0; y > -2400; y -= 40, row++) {
+    for (let c = 0; c < cols.length - 1; c++) {
+      const hsh = ((row * 7 + c * 13) * 2654435761 >>> 0) % 100;
+      if (hsh < 22) poly(quad(cols[c] + 1, cols[c + 1] - 1, y, y - 38), `rgba(0,0,0,${0.10 + (hsh % 5) * 0.02})`);
+      else if (hsh > 92) poly(quad(cols[c] + 1, cols[c + 1] - 1, y, y - 38), 'rgba(255,255,255,.04)');
+    }
+    const a = proj(LANE_L - 16, y), b = proj(LANE_R + 16, y);
+    ctx.strokeStyle = `rgba(0,0,0,${0.35 * a.k})`; ctx.lineWidth = Math.max(0.5, 1.6 * a.k);
+    ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+  }
+  for (const c of cols.slice(1, -1)) poly(quad(c - 0.8, c + 0.8, FAR, near), 'rgba(0,0,0,.28)');
+  // torchlight pools on the floor
+  for (let y = LINE_Y - 60; y > -2000; y -= 200) {
+    for (const x of [LANE_L + 10, LANE_R - 10]) {
+      const p = proj(x, y), f = 0.85 + Math.sin(now / 90 + y) * 0.15;
+      const pool = ctx.createRadialGradient(p.x, p.y, 2, p.x, p.y, 120 * p.k * f);
+      pool.addColorStop(0, 'rgba(255,170,70,.20)'); pool.addColorStop(1, 'rgba(255,170,70,0)');
+      ctx.fillStyle = pool; ctx.fillRect(p.x - 130 * p.k, p.y - 130 * p.k, 260 * p.k, 260 * p.k);
+    }
+  }
+  // walls: a tall face along each edge, a top, and stone courses
+  for (const [inner, outer] of [[LANE_L - 16, LANE_L - 70], [LANE_R + 16, LANE_R + 70]]) {
+    const base = quad(Math.min(inner, outer), Math.max(inner, outer), FAR, near);
+    const lift = base.map(p => ({ x: p.x, y: p.y - 110 * p.k }));
+    const innerIdx = inner < outer ? [1, 2] : [0, 3];
+    const bi = [base[innerIdx[0]], base[innerIdx[1]]], li = [lift[innerIdx[0]], lift[innerIdx[1]]];
+    const face = ctx.createLinearGradient(0, HORIZON, 0, H);
+    face.addColorStop(0, '#2a2731'); face.addColorStop(1, '#4a4553');
+    poly([li[0], li[1], bi[1], bi[0]], face);
+    poly(lift, '#3a3642');
+    for (let hgt = 22; hgt < 110; hgt += 22) {
+      const a = { x: bi[0].x, y: bi[0].y - hgt * base[innerIdx[0]].k }, b = { x: bi[1].x, y: bi[1].y - hgt * base[innerIdx[1]].k };
+      ctx.strokeStyle = 'rgba(0,0,0,.25)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+    }
+  }
+  // dressing along the walls: torches high, braziers and coffins at the base
+  for (let y = LINE_Y - 60; y > -2000; y -= 200) {
+    for (const [x, flip] of [[LANE_L - 12, false], [LANE_R + 12, true]]) {
+      const p = proj(x, y), f = 0.9 + Math.sin(now / 70 + y * 0.3) * 0.1;
+      if (!(art && art.draw(ctx, 'torch', p.x, p.y - 60 * p.k, PPU.lamp * 1.3 * p.k, { flip }))) {
+        ctx.fillStyle = '#ffb040'; ctx.beginPath(); ctx.arc(p.x, p.y - 80 * p.k, 5 * p.k, 0, 6.28); ctx.fill();
+      }
+      const glow = ctx.createRadialGradient(p.x, p.y - 84 * p.k, 1, p.x, p.y - 84 * p.k, 40 * p.k * f);
+      glow.addColorStop(0, 'rgba(255,200,110,.7)'); glow.addColorStop(1, 'rgba(255,170,70,0)');
+      ctx.fillStyle = glow; ctx.fillRect(p.x - 44 * p.k, p.y - 130 * p.k, 88 * p.k, 92 * p.k);
+    }
+  }
+  for (let y = LINE_Y - 160, i = 0; y > -1800; y -= 400, i++) {
+    const side = i % 2 === 0;
+    const bp = proj(side ? LANE_L - 44 : LANE_R + 44, y);
+    if (!(art && art.draw(ctx, 'brazier', bp.x, bp.y, PPU.brute * bp.k))) { ctx.fillStyle = '#5cf08a'; ctx.beginPath(); ctx.arc(bp.x, bp.y - 20 * bp.k, 8 * bp.k, 0, 6.28); ctx.fill(); }
+    const gl = ctx.createRadialGradient(bp.x, bp.y - 24 * bp.k, 1, bp.x, bp.y - 24 * bp.k, 70 * bp.k);
+    gl.addColorStop(0, 'rgba(90,255,140,.45)'); gl.addColorStop(1, 'rgba(60,200,110,0)');
+    ctx.fillStyle = gl; ctx.fillRect(bp.x - 70 * bp.k, bp.y - 94 * bp.k, 140 * bp.k, 140 * bp.k);
+    const cp = proj(side ? LANE_R + 40 : LANE_L - 40, y - 180);
+    if (!(art && art.draw(ctx, 'coffin', cp.x, cp.y, PPU.brute * cp.k, { flip: side }))) { ctx.fillStyle = '#3b3846'; ctx.fillRect(cp.x - 12 * cp.k, cp.y - 40 * cp.k, 24 * cp.k, 40 * cp.k); }
   }
   // the line
   const a = proj(LANE_L, LINE_Y), b = proj(LANE_R, LINE_Y);
@@ -719,7 +817,7 @@ function drawEnemies() {
     const sway = Math.sin(h.wob) * (h.kind === 'runner' ? 2.5 : 1.5);
     const p = proj(h.x + sway, h.y), r = h.r * p.k;
     const frame = Math.floor(h.wob / 3.14) % 2;
-    const drawn = art && art.draw(ctx, h.kind + '_' + frame, p.x, p.y, (h.kind === 'brute' ? PPU.brute : PPU.unit) * p.k);
+    const drawn = art && art.draw(ctx, (h.skin || h.kind) + '_' + frame, p.x, p.y, (h.kind === 'brute' ? PPU.brute : PPU.unit) * p.k);
     if (!drawn) drawEnemyVector(h, p.x, p.y, r);
     if (h.hurt > 0) {
       ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.45;
@@ -809,20 +907,21 @@ function drawBay() {
   // a stone platform beside the road, with a parapet, a walkway into the lane and chains
   const near = H + 40;
   poly(quad(BAY.x0 - 6, BAY.x1 + 6, BAY.top + 8, near), 'rgba(10,30,60,.28)');
-  poly(quad(BAY.x0 - 4, BAY.x1 + 4, BAY.top, near), '#9f9a90');
+  const T = bayTone();
+  poly(quad(BAY.x0 - 4, BAY.x1 + 4, BAY.top, near), T.edge);
   const stone = ctx.createLinearGradient(0, proj(0, BAY.top).y, 0, H);
-  stone.addColorStop(0, '#b9b3a6'); stone.addColorStop(1, '#cfc8b8');
+  stone.addColorStop(0, T.far); stone.addColorStop(1, T.near);
   poly(quad(BAY.x0, BAY.x1, BAY.top + 6, near), stone);
   for (let y = BAY.top + 30; y < near; y += 26) { const a = proj(BAY.x0, y), b = proj(BAY.x1, y); ctx.strokeStyle = `rgba(40,40,50,${0.12 * a.k})`; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke(); }
   for (let x = BAY.x0 + 24; x < BAY.x1; x += 26) poly(quad(x, x + 1, BAY.top + 6, near), 'rgba(40,40,50,.10)');
   // the walkway across the gap at line height
-  poly(quad(BAY.x1, LANE_L, LINE_Y - 30, LINE_Y + 80), '#c4bdae');
+  poly(quad(BAY.x1, LANE_L, LINE_Y - 30, LINE_Y + 80), T.walk);
   poly(quad(BAY.x1, LANE_L, LINE_Y - 30, LINE_Y - 27), 'rgba(255,255,255,.35)');
   // parapet on the outer edge and the far end
   { const base = quad(BAY.x0 - 4, BAY.x0 + 3, BAY.top, near), lift = base.map(p => ({ x: p.x, y: p.y - 10 * p.k }));
-    poly(base, '#8f8a7e'); poly(lift, '#d9d3c5'); }
+    poly(base, T.wall); poly(lift, T.cap); }
   { const base = quad(BAY.x0 - 4, BAY.x1 + 4, BAY.top, BAY.top + 6), lift = base.map(p => ({ x: p.x, y: p.y - 10 * p.k }));
-    poly(base, '#8f8a7e'); poly(lift, '#d9d3c5'); }
+    poly(base, T.wall); poly(lift, T.cap); }
   // the wheel on its stem, the count, and the chained giant
   const w = G.wheel, armed = w.rearmT <= 0 && w.left > 0;
   const wp = proj(BAY.cx, BAY.wheelY), wk = wp.k;
@@ -918,10 +1017,10 @@ function drawBoss() {
   const b = G.boss; if (!b || b.hp <= 0) return;
   const bob = reduceMotion() ? 0 : Math.sin(b.wob * 2) * 1.5;
   const p = proj(b.x, b.y + 36 + bob), k = p.k;
-  const drawn = art && art.draw(ctx, 'walker', p.x, p.y, PPU.walker * k);
+  const drawn = art && art.draw(ctx, G.stage.boss, p.x, p.y, PPU.walker * k);
   if (drawn && b.hitT > 0) {
     ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.35;
-    art.draw(ctx, 'walker', p.x, p.y, PPU.walker * k); ctx.restore();
+    art.draw(ctx, G.stage.boss, p.x, p.y, PPU.walker * k); ctx.restore();
   }
   // the block's screen box, for the cracks, bar and number
   const w = b.w * k, h = b.h * k, x = p.x - w / 2, y = p.y - 36 * k - h / 2;
@@ -952,7 +1051,7 @@ function drawHUD() {
   pill(W / 2 - 52, 10, 104, 42, 'rgba(12,20,36,.78)', 21);
   ctx.strokeStyle = 'rgba(255,255,255,.14)'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(W / 2 - 31, 31, 13, 0, 6.28); ctx.stroke();
   ctx.strokeStyle = G.boss ? '#bdf3ff' : left < 10 ? '#ffb640' : '#5db2ff'; ctx.beginPath(); ctx.arc(W / 2 - 31, 31, 13, -Math.PI / 2, -Math.PI / 2 + f * 6.283); ctx.stroke();
-  if (G.boss) strokeText('WALKER', W / 2 + 12, 31, 17, '#bdf3ff', 700, 'rgba(0,0,0,0)');
+  if (G.boss) strokeText(G.stage.bossName.replace('THE ', ''), W / 2 + 12, 31, G.stage.id === 'crypt' ? 13 : 17, G.stage.id === 'crypt' ? '#7dffa0' : '#bdf3ff', 700, 'rgba(0,0,0,0)');
   else strokeText('0:' + String(Math.ceil(left)).padStart(2, '0'), W / 2 + 12, 32, 24, left < 10 ? '#ffb640' : '#ffffff', 700, 'rgba(0,0,0,0)');
   if (G.weapon !== 'rifle') {
     const pulse = G.wpnT > 0 && !reduceMotion() ? 1 + Math.sin(G.wpnT * 12) * 0.08 : 1;
@@ -985,7 +1084,7 @@ function drawHUD() {
     pill(W / 2 - 120, 222 + rise, 240, 70, 'rgba(12,20,36,.82)', 12);
     strokeText('HOLD THE LINE', W / 2, 246 + rise, 26, '#ffb640', 700, 'rgba(0,0,0,0)');
     ctx.font = 'italic 500 13px Barlow, sans-serif'; ctx.fillStyle = '#b7c3d6'; ctx.textAlign = 'center';
-    ctx.fillText('sixty seconds, then the walker', W / 2, 272 + rise);
+    ctx.fillText('sixty seconds, then ' + G.stage.bossName.toLowerCase(), W / 2, 272 + rise);
     ctx.globalAlpha = 1;
   }
   if (paused) {
@@ -998,7 +1097,7 @@ function drawHUD() {
 function draw() {
   ctx.save();
   if (G && G.shake > 0 && !reduceMotion()) ctx.translate(rnd(-G.shake, G.shake), rnd(-G.shake, G.shake));
-  drawBridge();
+  if (G && G.stage.id === 'crypt') drawCrypt(); else drawBridge();
   if (G) {
     drawBay();
     for (const g of G.gates.slice().sort((a, b) => a.y - b.y)) drawGate(g);
@@ -1031,7 +1130,7 @@ function draw() {
     ctx.globalAlpha = 1;
     if (G.flash > 0) { ctx.fillStyle = `rgba(255,77,94,${G.flash * 0.5})`; ctx.fillRect(0, 0, W, H); }
   }
-  ctx.drawImage(layers.vignette, 0, 0);
+  ctx.drawImage(G && G.stage.id === 'crypt' ? layers.vignetteDark : layers.vignette, 0, 0);
   if (G) drawHUD();
   ctx.restore();
 }

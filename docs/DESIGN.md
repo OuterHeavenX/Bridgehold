@@ -166,6 +166,25 @@ of the curve, and play will move the constants.
   all drawn in perspective now, and a night palette would be a lighting pass on top of
   that, not a return to the old drawing.
 
+## Pass 7, shipped: the campaign has stages
+
+- **Stages are data.** `STAGES` in the balance module names each ten-level block: its
+  scene, its boss sprite and name, the sprite family that plays each enemy role, and
+  per-role multipliers on the baseline. The rules do not change between stages; the
+  cast and the room do. A third stage is a row in that table plus art.
+- **Levels 1 to 10: The Bridge.** Everything from pass 6.
+- **Levels 11 to 20: The Ossuary.** A crypt corridor: dark flagstones, stone walls with
+  torches and green crystal braziers, coffins against the walls, a green-lit arch at
+  the far end. Bonewalkers (skeleton warriors with shield and blade) play the husk at
+  1.1× health; skulls tumble in as the runner at 0.8× health and 1.15× speed; bonelords
+  (armoured skeletal knights with a great mace) play the brute at 1.2× health. The
+  boss is the Reliquary, a stone sarcophagus with green fire at its corners and the
+  lich standing on its lid, on the same footprint and rules as the walker.
+- The bay, the wheel, the giant, the allies and the surge carry over unchanged; the
+  bay is drawn in the stage's stone.
+- The home screen groups the level strip by stage and swaps the hero art to the
+  stage of the selected level.
+
 ## What comes next
 
 - **More allies.** A third flank is not available, so later allies should replace or

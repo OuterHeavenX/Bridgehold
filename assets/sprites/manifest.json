@@ -1,5 +1,35 @@
 {
   "parts": {
+    "bonelord_0": {
+      "file": "bonelord_0.png",
+      "note": "faces down the lane; walk frame A",
+      "pixelsPerUnit": 72.258,
+      "size": 224
+    },
+    "bonelord_1": {
+      "file": "bonelord_1.png",
+      "note": "faces down the lane; walk frame B",
+      "pixelsPerUnit": 72.258,
+      "size": 224
+    },
+    "bonewalker_0": {
+      "file": "bonewalker_0.png",
+      "note": "faces down the lane; walk frame A",
+      "pixelsPerUnit": 76.19,
+      "size": 160
+    },
+    "bonewalker_1": {
+      "file": "bonewalker_1.png",
+      "note": "faces down the lane; walk frame B",
+      "pixelsPerUnit": 76.19,
+      "size": 160
+    },
+    "brazier": {
+      "file": "brazier.png",
+      "note": "green crystal brazier, drawn along the crypt walls",
+      "pixelsPerUnit": 35.556,
+      "size": 128
+    },
     "brute_0": {
       "file": "brute_0.png",
       "note": "faces down the lane; walk frame A",
@@ -11,6 +41,12 @@
       "note": "faces down the lane; walk frame B",
       "pixelsPerUnit": 72.258,
       "size": 224
+    },
+    "coffin": {
+      "file": "coffin.png",
+      "note": "stone coffin, drawn against the crypt walls",
+      "pixelsPerUnit": 37.647,
+      "size": 128
     },
     "colossus_0": {
       "file": "colossus_0.png",
@@ -54,6 +90,12 @@
       "pixelsPerUnit": 45.714,
       "size": 64
     },
+    "reliquary": {
+      "file": "reliquary.png",
+      "note": "the crypt's walker; ground point at centre",
+      "pixelsPerUnit": 67.368,
+      "size": 512
+    },
     "runner_0": {
       "file": "runner_0.png",
       "note": "faces down the lane; sprint frame A",
@@ -72,6 +114,18 @@
       "pixelsPerUnit": 45.714,
       "size": 192
     },
+    "skull_0": {
+      "file": "skull_0.png",
+      "note": "faces down the lane; tumble frame A",
+      "pixelsPerUnit": 80.0,
+      "size": 128
+    },
+    "skull_1": {
+      "file": "skull_1.png",
+      "note": "faces down the lane; tumble frame B",
+      "pixelsPerUnit": 80.0,
+      "size": 128
+    },
     "soldier_0": {
       "file": "soldier_0.png",
       "note": "faces up the lane; walk frame A",
@@ -83,6 +137,12 @@
       "note": "faces up the lane; walk frame B",
       "pixelsPerUnit": 76.19,
       "size": 160
+    },
+    "torch": {
+      "file": "torch.png",
+      "note": "wall torch, drawn on the crypt walls",
+      "pixelsPerUnit": 36.923,
+      "size": 96
     },
     "walker": {
       "file": "walker.png",
