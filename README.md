@@ -61,8 +61,8 @@ Coins come from kills, the walker, and a clear bonus. They buy four camp upgrade
 
 Every enemy's health is anchored to the damage a fairly-run camp puts out at that level,
 so the horde and the bosses keep pace with the squad at every level: a late pack of
-twenty takes a second or two of full fire, the boss eighteen seconds against a
-twenty-five second descent. Two behemoths interrupt every run, at twenty and forty-two
+twenty takes a second or two of full fire, the boss sixteen seconds against a
+twenty-five second descent that quickens below half health. Two behemoths interrupt every run, at twenty and forty-two
 seconds, and the boss wakes into a second phase below half health.
 
 Costs climb ×1.35 per rank, and so do coins per kill, the walker's reward and the clear

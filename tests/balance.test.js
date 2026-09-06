@@ -128,7 +128,7 @@ test('every enemy keeps pace with a fairly-run camp at every level', () => {
     assert.ok(bossTime < bossTimeToLine() - 5, 'with time to spare');
     // and a behemoth is a real interruption but not a wall
     const miniTime = miniHP(L) / p;
-    assert.ok(miniTime > 4 && miniTime < 8, 'level ' + L + ' behemoth ' + miniTime.toFixed(1));
+    assert.ok(miniTime > 3.5 && miniTime < 7, 'level ' + L + ' behemoth ' + miniTime.toFixed(1));
   }
   assert.deepEqual(fairCamp(1), { dmg: 0, rate: 0, squad: 0, gate: 0 }, 'level 1 assumes a fresh camp');
   assert.equal(expectedCount(1), 34);

@@ -104,13 +104,14 @@ export const powerAt = level => squadDps(statsFor({ level, up: fairCamp(level) }
    of twenty takes about 1.2 s of full fire late in the run. */
 export const HUSK_SECONDS = 0.06;
 export const huskHP = (level, t) => powerAt(level) * HUSK_SECONDS * (0.35 + 0.65 * Math.min(1, t / RUN_T));
-/* The boss: eighteen seconds of expected fire, against a descent of about
-   twenty-five, so an average squad wins with room and a weak one does not. */
-export const BOSS_SECONDS = 18;
+/* The boss: sixteen seconds of expected fire, against a descent of about
+   twenty-five that quickens below half health, so an average squad wins
+   with a little room and a weak one does not. */
+export const BOSS_SECONDS = 16;
 export const bossHP = level => Math.round(powerAt(level) * BOSS_SECONDS);
-/* Behemoths: two a run, at twenty and forty-two seconds, each six seconds of
+/* Behemoths: two a run, at twenty and forty-two seconds, each five seconds of
    expected fire, slow, and hungry at the line. */
-export const MINI = Object.freeze({ at: [20, 42], seconds: 6, speed: 30, r: 22, chewFrac: 0.08, chewEvery: 1.0, reward: 15 });
+export const MINI = Object.freeze({ at: [20, 42], seconds: 5, speed: 30, r: 22, chewFrac: 0.06, chewEvery: 1.0, reward: 15 });
 export const miniHP = level => Math.round(powerAt(level) * MINI.seconds);
 export const bossReward = level => Math.round(40 * levelScale(level));
 export const clearBonus = level => Math.round(60 * levelScale(level));
@@ -165,7 +166,7 @@ export const WEAPONS = Object.freeze({
 export const weaponDps = w => w.dmg * w.pellets / w.interval;
 
 /* The walker's descent. It starts above the screen and stops at the line. */
-export const BOSS = Object.freeze({ w: 250, h: 180, startY: -300, vy: 29, phaseAt: 0.5, phaseSpeed: 1.5, shellEvery: 2.2, shellFrac: 0.03, summonEvery: 4.0, summonSize: 8 });
+export const BOSS = Object.freeze({ w: 250, h: 180, startY: -300, vy: 29, phaseAt: 0.5, phaseSpeed: 1.3, shellEvery: 2.4, shellFrac: 0.025, summonEvery: 4.0, summonSize: 8 });
 export const bossTimeToLine = () => (LINE_Y - 14 - (BOSS.startY + BOSS.h / 2)) / BOSS.vy;
 
 export const squadDps = (stats, count) => stats.dmg * count / stats.interval;
