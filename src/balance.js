@@ -160,7 +160,7 @@ export const GATE_INTERVAL = 5;
    shooter; `tracers` caps how many soldiers visibly fire per volley. */
 export const WEAPONS = Object.freeze({
   rifle:   Object.freeze({ name: 'RIFLE',   dmg: 1,    interval: 1,   pellets: 1, spread: 0,    pierce: 0,  tracers: 12 }),
-  shotgun: Object.freeze({ name: 'SHOTGUN', dmg: 0.45, interval: 0.8, pellets: 3, spread: 0.22, pierce: 0,  tracers: 8 }),
+  shotgun: Object.freeze({ name: 'SHOTGUN', dmg: 0.5,  interval: 0.8, pellets: 3, spread: 0.13, pierce: 0,  tracers: 8 }),
   rail:    Object.freeze({ name: 'RAIL',    dmg: 2.2,  interval: 1.9, pellets: 1, spread: 0,    pierce: 99, tracers: 4 }),
 });
 export const weaponDps = w => w.dmg * w.pellets / w.interval;
