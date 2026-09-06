@@ -66,6 +66,18 @@
       "pixelsPerUnit": 25.0,
       "size": 160
     },
+    "hulk_0": {
+      "file": "hulk_0.png",
+      "note": "the bridge behemoth; faces down the lane; walk frame A",
+      "pixelsPerUnit": 45.714,
+      "size": 256
+    },
+    "hulk_1": {
+      "file": "hulk_1.png",
+      "note": "the bridge behemoth; faces down the lane; walk frame B",
+      "pixelsPerUnit": 45.714,
+      "size": 256
+    },
     "husk_0": {
       "file": "husk_0.png",
       "note": "faces down the lane; walk frame A",
@@ -89,6 +101,18 @@
       "note": "additive flash, drawn at the rifle tip",
       "pixelsPerUnit": 45.714,
       "size": 64
+    },
+    "ogre_0": {
+      "file": "ogre_0.png",
+      "note": "the crypt behemoth; faces down the lane; walk frame A",
+      "pixelsPerUnit": 42.667,
+      "size": 256
+    },
+    "ogre_1": {
+      "file": "ogre_1.png",
+      "note": "the crypt behemoth; faces down the lane; walk frame B",
+      "pixelsPerUnit": 42.667,
+      "size": 256
     },
     "reliquary": {
       "file": "reliquary.png",

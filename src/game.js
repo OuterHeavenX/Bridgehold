@@ -2,6 +2,7 @@ import {
   RUN_T, LINE_Y, DEFAULT_SAVE, UPGRADES, UNLOCKS, ENEMIES, WEAPONS, BOSS, HELPERS,
   cost, statsFor, huskHP, bossHP, bossReward, clearBonus, coinPerKill,
   packKind, packSize, packInterval, GATE_INTERVAL, gateStepFor, gateHalf, helpersFor, stageFor, STAGES, dailyKey, dailyLevel, seedFrom, seededRandom,
+  MINI, miniHP,
   WHEEL, wheelStepFor, COLOSSUS, SURGE, hitGate, gateValue, applyGate, recordRun,
 } from './balance.js';
 import { createAudio } from './audio.js';
@@ -18,7 +19,7 @@ const $ = id => document.getElementById(id);
 
 // Game pixels per Blender unit, per sprite family. The walker is drawn at a
 // larger scale on purpose: it is meant to be monumental.
-const PPU = { unit: 14, brute: 16, walker: 58, lamp: 11, sentinel: 17, frostlamp: 19, colossus: 22, wheel: 14 };
+const PPU = { unit: 14, brute: 16, mini: 27, walker: 76, lamp: 11, sentinel: 17, frostlamp: 19, colossus: 22, wheel: 14 };
 const FLANK = { l: LANE_L + 30, r: LANE_R - 30, y: LINE_Y + 44 };
 let art = null;
 loadArt().then(pack => { art = pack; document.body.classList.toggle('has-art', !!pack); });
@@ -148,6 +149,7 @@ function startRun(opts = {}) {
     daily, dailyKey: key, rand: daily ? seededRandom(seedFrom(key)) : null,
     tips: !save.tutorial && !daily ? tutorialTips() : [], tip: null, ann: { queue: [], cur: null, t: 0 }, redOut: 0,
     log: [],   // every spawn roll, so a daily can be checked for determinism
+    miniIdx: 0, bossShells: [], phase2: false, bossT: 0,
   };
   G.frost = G.helpers.find(h => h.k === 'frost') || null;
   showScreen(null);
@@ -237,7 +239,8 @@ function formation(count, cx) {
 }
 function killHusk(h, idx) {
   G.husks.splice(idx, 1);
-  G.kills++; G.coins += coinPerKill(G.level) * ENEMIES[h.kind].reward;
+  G.kills++; G.coins += coinPerKill(G.level) * (h.kind === 'mini' ? MINI.reward : ENEMIES[h.kind].reward);
+  if (h.kind === 'mini') { G.punch = 1; G.shake = 9; burst(h.x, h.y, '#c084fc', 40, 260); G.rings.push({ x: h.x, y: h.y, r: 30, t: 0, life: 0.8, color: '192,132,252', grow: 5 }); announce(G.stage.miniName + ' DOWN', '', '#c084fc', 1.4); audio.shatter(); }
   // streak, a coin that flies to the counter, and a ring on the deck
   G.streak = G.streakT < 1.2 ? G.streak + 1 : 1; G.streakT = 0; G.streakPop = 0.25;
   if (G.streak > G.bestStreak) G.bestStreak = G.streak;
@@ -422,13 +425,17 @@ function update(dt) {
     h.wob += dt * (h.kind === 'runner' ? 12 : 6);
     if (h.hurt > 0) h.hurt -= dt;
     if (h.parked) {
-      if (G.over === 0) { h.chewT += dt; if (h.chewT >= 1) { h.chewT -= 1; loseSoldiers(ENEMIES.brute.chew); G.shake = Math.max(G.shake, 3); } }
+      if (G.over === 0) {
+        h.chewT += dt;
+        if (h.kind === 'mini') { if (h.chewT >= MINI.chewEvery) { h.chewT -= MINI.chewEvery; loseSoldiers(Math.max(1, Math.floor(G.count * MINI.chewFrac))); G.shake = Math.max(G.shake, 5); } }
+        else if (h.chewT >= 1) { h.chewT -= 1; loseSoldiers(ENEMIES.brute.chew); G.shake = Math.max(G.shake, 3); }
+      }
       continue;
     }
     const frost = G.frost && h.y > LINE_Y - G.frost.band ? G.frost.slow : 1;
     h.y += h.vy * dt * frost;
-    if (h.y >= LINE_Y - 6 - (h.kind === 'brute' ? 10 : 0)) {
-      if (h.kind === 'brute') { h.parked = true; h.y = LINE_Y - 16; G.shake = Math.max(G.shake, 5); audio.gateBad(); continue; }
+    if (h.y >= LINE_Y - 6 - (h.kind === 'brute' || h.kind === 'mini' ? 10 : 0)) {
+      if (h.kind === 'brute' || h.kind === 'mini') { h.parked = true; h.y = LINE_Y - (h.kind === 'mini' ? 30 : 16); G.shake = Math.max(G.shake, h.kind === 'mini' ? 9 : 5); audio.gateBad(); if (h.kind === 'mini') announce('AT THE LINE', 'the ' + G.stage.miniName.toLowerCase() + ' is eating the squad', '#c084fc', 1.6); continue; }
       G.husks.splice(hi, 1);
       burst(h.x, h.y, '#ff4d5e', 5);
       loseSoldiers(ENEMIES[h.kind].touch);
@@ -541,6 +548,47 @@ function update(dt) {
         }
       }
       if (c.y < -180) G.colossus = null;
+    }
+  }
+
+  // behemoths at their moments
+  if (G.over === 0 && G.miniIdx < MINI.at.length && G.t >= MINI.at[G.miniIdx]) {
+    G.miniIdx++;
+    const hp = miniHP(G.level), x = LANE_L + 60 + roll() * (LANE_R - LANE_L - 120);
+    const pack = { units: [], kind: 'mini' };
+    pack.units.push({ x, y: -260, hp, max: hp, vy: MINI.speed, wob: 0, pack, kind: 'mini', skin: G.stage.mini, r: MINI.r, chewT: 0, parked: false, hurt: 0 });
+    G.husks.push(pack.units[0]); G.log.push('mini');
+    announce(G.stage.miniName, 'it parks at the line and eats the squad until it falls', '#c084fc', 2.2);
+    audio.thump(); G.shake = Math.max(G.shake, 4);
+  }
+  // the boss's second phase
+  if (G.boss && G.boss.hp > 0 && !G.phase2 && G.boss.hp < G.boss.max * BOSS.phaseAt) {
+    G.phase2 = true; G.boss.vy *= BOSS.phaseSpeed; G.bossT = 1.0; G.punch = Math.max(G.punch, 0.8); G.shake = 6;
+    announce(G.stage.phase === 'shells' ? 'IT WAKES' : 'THE LICH RISES', G.stage.phase === 'shells' ? 'faster now, and it fires back' : 'skulls pour from the reliquary', '#ff4d5e', 2.2);
+    audio.shatter();
+  }
+  if (G.boss && G.boss.hp > 0 && G.phase2 && G.over === 0) {
+    G.bossT -= dt;
+    if (G.bossT <= 0) {
+      if (G.stage.phase === 'shells') {
+        G.bossT = BOSS.shellEvery;
+        G.bossShells.push({ x0: G.boss.x, y0: G.boss.y, tx: G.cx, ty: LINE_Y + 6, t: 0, dur: 1.1 });
+        audio.thump();
+      } else {
+        G.bossT = BOSS.summonEvery;
+        const E = ENEMIES.runner, mod = G.stage.mods.runner, hp = huskHP(G.level, G.t) * E.hp * mod.hp, pack = { units: [], kind: 'runner' };
+        for (let i = 0; i < BOSS.summonSize; i++) pack.units.push({ x: G.boss.x + rnd(-50, 50), y: G.boss.y + 70 + i * 10, hp, max: hp, vy: (rnd(52, 76) + G.level * 2.5) * E.speed * mod.speed, wob: rnd(0, 6.28), pack, kind: 'runner', skin: G.stage.skins.runner, r: E.r, chewT: 0, parked: false, hurt: 0 });
+        G.husks.push(...pack.units); burst(G.boss.x, G.boss.y + 60, '#7dffa0', 14, 200);
+      }
+    }
+  }
+  for (let i = G.bossShells.length - 1; i >= 0; i--) {
+    const sh = G.bossShells[i]; sh.t += dt;
+    if (sh.t >= sh.dur) {
+      G.bossShells.splice(i, 1);
+      burst(sh.tx, sh.ty, '#ff8a5a', 22, 240); G.shake = Math.max(G.shake, 5);
+      G.rings.push({ x: sh.tx, y: sh.ty, r: 30, t: 0, life: 0.5, color: '255,120,80', grow: 3 });
+      if (G.over === 0 && Math.abs(sh.tx - G.cx) < 70) loseSoldiers(Math.max(1, Math.floor(G.count * BOSS.shellFrac)));
     }
   }
 
@@ -941,7 +989,7 @@ function drawEnemies() {
     const sway = Math.sin(h.wob) * (h.kind === 'runner' ? 2.5 : 1.5);
     const p = proj(h.x + sway, h.y), r = h.r * p.k;
     const frame = Math.floor(h.wob / 3.14) % 2;
-    const drawn = art && art.draw(ctx, (h.skin || h.kind) + '_' + frame, p.x, p.y, (h.kind === 'brute' ? PPU.brute : PPU.unit) * p.k);
+    const drawn = art && art.draw(ctx, (h.skin || h.kind) + '_' + frame, p.x, p.y, (h.kind === 'mini' ? PPU.mini : h.kind === 'brute' ? PPU.brute : PPU.unit) * p.k);
     if (!drawn) drawEnemyVector(h, p.x, p.y, r);
     if (h.hurt > 0) {
       ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.45;
@@ -953,7 +1001,11 @@ function drawEnemies() {
   }
   for (const t of packs.values()) {
     const p = proj(t.sx / t.n, t.top), k = tagK(p.k), y = p.y - 14 * k;
-    if (t.kind === 'brute') {
+    if (t.kind === 'mini') {
+      const txt = Math.ceil(t.hp).toLocaleString(), kk = Math.max(0.8, k), w = Math.max(90, txt.length * 13 + 24) * kk;
+      pill(p.x - w / 2, y - 16 * kk, w, 32 * kk, '#7c3aed', 8 * kk);
+      strokeText(txt, p.x, y + 1, 20 * kk, '#fff');
+    } else if (t.kind === 'brute') {
       const txt = String(Math.ceil(t.hp)), w = Math.max(48, txt.length * 12 + 16) * k;
       pill(p.x - w / 2, y - 12 * k, w, 24 * k, '#8b5cf6', 6 * k);
       strokeText(txt, p.x, y + 1, 18 * k, '#fff');
@@ -1123,6 +1175,16 @@ function drawAllies() {
   }
 }
 function drawShells() {
+  for (const sh of G.bossShells) {
+    const t = sh.t / sh.dur, wx = sh.x0 + (sh.tx - sh.x0) * t, wy = sh.y0 + (sh.ty - sh.y0) * t;
+    const g0 = proj(wx, wy), lift = Math.sin(t * Math.PI) * 160 * g0.k, r = 10 * Math.max(0.6, g0.k);
+    const g = ctx.createRadialGradient(g0.x, g0.y - lift, 1, g0.x, g0.y - lift, r);
+    g.addColorStop(0, 'rgba(255,240,220,1)'); g.addColorStop(0.5, 'rgba(255,110,60,.9)'); g.addColorStop(1, 'rgba(255,60,30,0)');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(g0.x, g0.y - lift, r, 0, 6.28); ctx.fill();
+    const tp = proj(sh.tx, sh.ty), rr = 70 * (0.5 + 0.5 * t) * tp.k;
+    ctx.strokeStyle = `rgba(255,80,60,${0.35 + 0.5 * t})`; ctx.lineWidth = 2; ctx.setLineDash([6, 4]);
+    ctx.beginPath(); ctx.ellipse(tp.x, tp.y, rr, rr * 0.55, 0, 0, 6.28); ctx.stroke(); ctx.setLineDash([]);
+  }
   for (const sh of G.shells) {
     const t = sh.t / sh.dur, wx = sh.x0 + (sh.tx - sh.x0) * t, wy = sh.y0 + (sh.ty - sh.y0) * t;
     const g0 = proj(wx, wy), lift = Math.sin(t * Math.PI) * 120 * g0.k;
@@ -1181,9 +1243,18 @@ function drawHUD() {
   ctx.strokeStyle = G.boss ? '#bdf3ff' : left < 10 ? '#ffb640' : '#5db2ff'; ctx.beginPath(); ctx.arc(W / 2 - 31, 31, 13, -Math.PI / 2, -Math.PI / 2 + f * 6.283); ctx.stroke();
   if (G.boss) strokeText(G.stage.bossName.replace('THE ', ''), W / 2 + 12, 31, G.stage.id === 'crypt' ? 13 : 17, G.stage.id === 'crypt' ? '#7dffa0' : '#bdf3ff', 700, 'rgba(0,0,0,0)');
   else strokeText('0:' + String(Math.ceil(left)).padStart(2, '0'), W / 2 + 12, 32, 24, left < 10 ? '#ffb640' : '#ffffff', 700, 'rgba(0,0,0,0)');
+  // the biggest thing on the road gets a bar under the clock
+  const big = G.boss && G.boss.hp > 0 ? { name: G.stage.bossName, hp: G.boss.hp, max: G.boss.max, color: G.phase2 ? '#ff4d5e' : '#bdf3ff' } : (() => { const m = G.husks.filter(h => h.kind === 'mini').sort((a, b) => b.hp - a.hp)[0]; return m ? { name: G.stage.miniName, hp: m.hp, max: m.max, color: '#c084fc' } : null; })();
+  if (big) {
+    pill(W / 2 - 100, 58, 200, 22, 'rgba(12,20,36,.8)', 11);
+    pill(W / 2 - 92, 66, 184, 6, 'rgba(255,255,255,.15)', 3);
+    pill(W / 2 - 92, 66, Math.max(4, 184 * big.hp / big.max), 6, big.color, 3);
+    ctx.font = F(700, 9); ctx.textAlign = 'left'; ctx.fillStyle = '#e6edf6'; ctx.fillText(big.name, W / 2 - 92, 62);
+    ctx.textAlign = 'right'; ctx.fillStyle = big.color; ctx.fillText(Math.ceil(big.hp).toLocaleString(), W / 2 + 92, 62);
+  }
   if (G.weapon !== 'rifle') {
     const pulse = G.wpnT > 0 && !reduceMotion() ? 1 + Math.sin(G.wpnT * 12) * 0.08 : 1;
-    ctx.save(); ctx.translate(W / 2, 66); ctx.scale(pulse, pulse);
+    ctx.save(); ctx.translate(W / 2, big ? 94 : 66); ctx.scale(pulse, pulse);
     pill(-34, -9, 68, 18, 'rgba(12,20,36,.7)', 9);
     strokeText(WEAPONS[G.weapon].name, 0, 1, 11, '#ffb640', 600, 'rgba(0,0,0,0)');
     ctx.restore();

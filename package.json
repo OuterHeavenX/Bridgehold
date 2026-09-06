@@ -6,6 +6,7 @@
     "test": "node --test tests/*.test.js",
     "serve": "npx --yes serve .",
     "sprites": "python3 tools/blender/build_sprites.py --out assets/sprites",
-    "sprites:blender": "blender -b -noaudio --python tools/blender/build_sprites.py -- --out assets/sprites"
+    "sprites:blender": "blender -b -noaudio --python tools/blender/build_sprites.py -- --out assets/sprites",
+    "sweep": "node tools/sweep.mjs"
   }
 }

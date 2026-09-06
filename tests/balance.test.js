@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import {
   RUN_T, DEFAULT_SAVE, UPGRADES, UNLOCKS, SQUAD_CAP,
   cost, statsFor, huskHP, bossHP, clearBonus, bossReward, coinPerKill,
-  packSize, packInterval, bossTimeToLine, squadDps,
+  packSize, packInterval, bossTimeToLine, squadDps, powerAt, fairCamp, expectedCount, miniHP, MINI, BOSS_SECONDS, HUSK_SECONDS,
   gateHalf, hitGate, gateValue, applyGate,
 } from '../src/balance.js';
 
@@ -47,7 +47,7 @@ test('enemy health grows with the level and within a run', () => {
   assert.ok(huskHP(2, 0) > huskHP(1, 0));
   assert.ok(huskHP(1, RUN_T) > huskHP(1, 0));
   assert.ok(bossHP(5) > bossHP(4));
-  assert.equal(bossHP(1), 12000);
+  assert.ok(Math.abs(huskHP(1, 0) - 14) < 3, 'level 1 opens as it always did: a husk of about 14');
   assert.equal(coinPerKill(1), 1);
   assert.ok(coinPerKill(8) > coinPerKill(4));
 });
@@ -60,6 +60,7 @@ test('the walker is beatable on level 1 with a forty-soldier squad, and a set pi
   const st = statsFor(fresh());
   const timeToKill = bossHP(1) / squadDps(st, 40);
   assert.ok(bossHP(1) / squadDps(st, 120) > 4, 'even a large squad watches the number fall for seconds');
+  assert.ok(timeToKill > 8, 'and a forty-soldier squad still has a fight: ' + timeToKill.toFixed(1) + 's');
   assert.ok(timeToKill < bossTimeToLine(), `kill in ${timeToKill.toFixed(1)}s before ${bossTimeToLine().toFixed(1)}s`);
 });
 
@@ -111,4 +112,25 @@ test('gates apply, clamp at the cap, and never go below zero', () => {
   assert.deepEqual(applyGate(10, { kind: 'mul', v: 3 }, 0), { count: 30, text: '×3', good: true, gain: 20 });
   assert.equal(applyGate(SQUAD_CAP, { kind: 'mul', v: 3 }, 0).count, SQUAD_CAP);
   assert.deepEqual(applyGate(3, { kind: 'add', v: -8 }, 0), { count: 0, text: '-8', good: false });
+});
+
+test('every enemy keeps pace with a fairly-run camp at every level', () => {
+  for (let L = 1; L <= 20; L++) {
+    const p = powerAt(L);
+    assert.ok(p > 0);
+    if (L > 1) assert.ok(p > powerAt(L - 1), 'power rises with level ' + L);
+    // a pack of twenty late in the run dies in one to two seconds of full fire
+    const packTime = 20 * huskHP(L, RUN_T) / p;
+    assert.ok(packTime > 1.0 && packTime < 2.0, 'level ' + L + ' pack time ' + packTime.toFixed(2));
+    // the boss takes its eighteen seconds against a twenty-five second descent
+    const bossTime = bossHP(L) / p;
+    assert.ok(Math.abs(bossTime - BOSS_SECONDS) < 0.6, 'level ' + L + ' boss time ' + bossTime.toFixed(1));
+    assert.ok(bossTime < bossTimeToLine() - 5, 'with time to spare');
+    // and a behemoth is a real interruption but not a wall
+    const miniTime = miniHP(L) / p;
+    assert.ok(miniTime > 4 && miniTime < 8, 'level ' + L + ' behemoth ' + miniTime.toFixed(1));
+  }
+  assert.deepEqual(fairCamp(1), { dmg: 0, rate: 0, squad: 0, gate: 0 }, 'level 1 assumes a fresh camp');
+  assert.equal(expectedCount(1), 34);
+  assert.equal(MINI.at.length, 2);
 });

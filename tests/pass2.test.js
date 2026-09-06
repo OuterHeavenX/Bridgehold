@@ -107,11 +107,12 @@ test('a gate step is a slice of the squad\'s fire, whatever its size', () => {
 
 test('a multiplier is true when small and bounded when big', () => {
   assert.equal(applyGate(10, { kind: 'mul', v: 3 }, 0).count, 30);
-  assert.equal(applyGate(30, { kind: 'mul', v: 2 }, 0).count, 60);
+  assert.equal(applyGate(25, { kind: 'mul', v: 2 }, 0).count, 50);
   const big = applyGate(150, { kind: 'mul', v: 3 }, 0);
   assert.equal(big.gain, MUL_GAIN_CAP);
   assert.equal(big.count, SQUAD_CAP, 'and the cap still holds');
   assert.equal(applyGate(100, { kind: 'mul', v: 2 }, 0).count, 100 + MUL_GAIN_CAP);
+  assert.equal(applyGate(30, { kind: 'mul', v: 3 }, 0).count, 30 + MUL_GAIN_CAP, 'a x3 on thirty is already capped');
 });
 
 test('the squad cap holds through a weapon gate', () => {
@@ -159,6 +160,8 @@ test('every level from 1 to 20 belongs to exactly one stage, and past 20 the las
   for (const st of STAGES) {
     for (const role of ['husk', 'runner', 'brute']) { assert.ok(st.skins[role]); assert.ok(st.mods[role].hp > 0 && st.mods[role].speed > 0); }
     assert.ok(st.boss && st.bossName);
+    assert.ok(st.mini && st.miniName, 'every stage has a behemoth');
+    assert.ok(['shells', 'summons'].includes(st.phase), 'and a second phase for its boss');
   }
 });
 

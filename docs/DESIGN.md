@@ -222,6 +222,30 @@ of the curve, and play will move the constants.
   defeat all go through a single queue that shows one banner at a time under the HUD,
   so they no longer pile on the squad or each other. Gate pops stay at the squad.
 
+## Pass 10, shipped: the power overhaul
+
+- **Every enemy number is anchored to squad power.** `fairCamp(L)` is the ranks the
+  economy pays for by level L, `expectedCount(L)` a mid-run squad after ordinary gate
+  play, and `powerAt(L)` their damage per second. Husk health is six percent of a second
+  of that fire per husk late in the run, a third of it at the start; the boss is eighteen
+  seconds of it against a twenty-five second descent; a behemoth is six. The old curves
+  fell behind the squad around level 3, which is why level 7 ended with a thousand kills
+  and a four-second boss. A test now walks levels 1 to 20 and pins pack time, boss time
+  and behemoth time at every one.
+- **Behemoths.** Two a run, at twenty and forty-two seconds: the bridge's hulk, a husk
+  grown huge with a bone club and chains, and the crypt's bone ogre with a stone club and
+  a crown of horns. Slow, with their own health pill, they park at the line and take
+  eight percent of the squad a second until they fall. Fifteen kills' worth of coins.
+- **Bigger bosses, with a second phase.** The walker and reliquary are a third larger
+  on screen and their hit box grew with them. Below half health the walker wakes: it
+  descends half again as fast and lobs a shell at the squad every 2.2 seconds, three
+  percent of the squad per hit, with a warning ring where it will land. Below half the
+  reliquary's lich raises a pack of skulls every four seconds.
+- **A boss bar.** Under the clock, the name and health of the biggest thing on the road.
+- **The sweep.** `npm run sweep` runs every level with a gate-aware bot on a fair,
+  fresh or strong camp and prints a table. The overhaul was tuned against it.
+- Multiplier gates now add at most fifty soldiers.
+
 ## What comes next
 
 - **More allies.** A third flank is not available, so later allies should replace or

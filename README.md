@@ -59,6 +59,12 @@ Coins come from kills, the walker, and a clear bonus. They buy four camp upgrade
 | Reserves | +2 soldiers at deploy | 70 | 40 |
 | Quartermaster | Every add gate is +1 kinder | 150 | 15 |
 
+Every enemy's health is anchored to the damage a fairly-run camp puts out at that level,
+so the horde and the bosses keep pace with the squad at every level: a late pack of
+twenty takes a second or two of full fire, the boss eighteen seconds against a
+twenty-five second descent. Two behemoths interrupt every run, at twenty and forty-two
+seconds, and the boss wakes into a second phase below half health.
+
 Costs climb ×1.35 per rank, and so do coins per kill, the walker's reward and the clear
 bonus, so a cleared level buys the same share of the camp at level 20 as at level 1. Husk
 health climbs ×1.32 per level and 1% per second inside a run; the walker's climbs ×1.35.
@@ -147,7 +153,8 @@ docs/DESIGN.md    the design brief and what comes next
 ```
 
 ```bash
-npm test
+npm test          # the rules
+npm run sweep     # every level with a headless bot; add 1 5 for a range, --camp fresh|fair|strong
 ```
 
 ## License

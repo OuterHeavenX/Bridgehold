@@ -506,6 +506,72 @@ def colossus(frame):
             ball(0.12, loc=(sx * 2.2, (stride * 0.7 * sx if False else 0) + 0.1 * i, 1.5 - i * 0.28), material=iron)
 
 
+def hulk(frame):
+    """The bridge's behemoth: a husk grown huge, hunched, one arm a club of
+    bone, chains still on it. Faces down the lane."""
+    stride = 0.3 if frame == 0 else -0.3
+    legs(0, stride, r=0.32, h=1.2, color=(0.30, 0.26, 0.30), spread=0.55, z=0.6)
+    body = mat("hulk", (0.42, 0.55, 0.42), roughness=0.85)
+    dark = mat("hulk_d", (0.24, 0.20, 0.26), roughness=0.9)
+    bone = mat("hbone", (0.85, 0.86, 0.74), roughness=0.7)
+    ball(1.15, loc=(0, -0.1, 2.0), material=body, scale=(1.15, 0.85, 1.0))       # torso
+    ball(0.9, loc=(0, 0.35, 2.6), material=body, scale=(1.0, 0.7, 0.7))           # hump
+    for i in range(4):                                                            # spines on the hump
+        cone(0.1, 0.0, 0.45, loc=(-0.45 + i * 0.3, 0.55, 3.15), rot=(math.radians(-25), 0, 0), material=bone)
+    box((1.6, 0.6, 0.5), loc=(0, 0.1, 1.2), material=dark)                        # belt of rags
+    ball(0.5, loc=(0, -0.95, 2.55), material=body)                                # head, thrust forward
+    box((0.6, 0.35, 0.18), loc=(0, -1.3, 2.3), material=body, bevel=0.02)         # jaw
+    for sx in (-0.2, -0.07, 0.07, 0.2):
+        box((0.06, 0.06, 0.12), loc=(sx, -1.45, 2.4), material=bone, bevel=0)
+    eye = mat("heye", (1, 0.25, 0.3), emission=(1.0, 0.2, 0.3), strength=24)
+    ball(0.09, loc=(-0.18, -1.38, 2.62), material=eye)
+    ball(0.09, loc=(0.18, -1.38, 2.62), material=eye)
+    # arms: a long left arm reaching, a right arm ending in a bone club
+    arm = mat("harm", (0.42, 0.55, 0.42), roughness=0.85)
+    cyl(0.22, 1.9, loc=(-1.25, -0.6, 1.5), rot=(math.radians(-70), math.radians(15), 0), material=arm)
+    ball(0.3, loc=(-1.45, -1.45, 0.85), material=dark)
+    cyl(0.24, 1.6, loc=(1.25, -0.4, 1.7), rot=(math.radians(-55), math.radians(-15), 0), material=arm)
+    cyl(0.34, 1.3, loc=(1.6, -1.35, 1.0), rot=(math.radians(-55), 0, 0), material=bone)
+    for i in range(5):
+        a = i * math.tau / 5
+        cone(0.08, 0.0, 0.3, loc=(1.6 + math.cos(a) * 0.36, -1.5, 1.0 + math.sin(a) * 0.36), rot=(0, a + math.pi / 2, 0), material=bone)
+    iron = mat("hchain", (0.28, 0.3, 0.36), metallic=0.8, roughness=0.4)
+    for i in range(6):
+        ball(0.09, loc=(-0.9 + i * 0.36, -0.75, 2.85 - abs(i - 2.5) * 0.08), material=iron)
+
+
+def ogre(frame):
+    """The crypt's behemoth: a skeletal ogre with a stone club and a crown of
+    horns, green fire in the ribcage. Faces down the lane."""
+    stride = 0.3 if frame == 0 else -0.3
+    bone = mat("obone", (0.80, 0.80, 0.70), roughness=0.7)
+    dark = mat("obone_d", (0.45, 0.42, 0.38), roughness=0.8)
+    glow = mat("oglow", (0.5, 1.0, 0.6), emission=(0.45, 1.0, 0.55), strength=20)
+    stone = mat("ostone", (0.36, 0.36, 0.40), roughness=0.9)
+    legs(0, stride, r=0.28, h=1.3, color=(0.72, 0.72, 0.62), spread=0.55, z=0.65)
+    box((0.9, 0.5, 0.5), loc=(0, 0, 1.4), material=dark)                          # pelvis
+    cyl(0.2, 1.6, loc=(0, 0.15, 2.3), material=bone)                              # spine
+    for i in range(5):                                                            # ribs
+        bpy.ops.mesh.primitive_torus_add(major_radius=0.75 - i * 0.06, minor_radius=0.07, location=(0, 0.05, 1.85 + i * 0.22), rotation=(0, 0, 0), major_segments=28, minor_segments=8)
+        finish(bpy.context.object, bone, 0, smooth=True)
+    ball(0.42, loc=(0, 0, 2.3), material=glow)                                    # fire in the chest
+    box((1.9, 0.6, 0.45), loc=(0, 0.1, 3.05), material=bone, bevel=0.03)          # shoulder girdle
+    ball(0.5, loc=(0, -0.2, 3.6), material=bone)                                  # skull
+    box((0.5, 0.35, 0.16), loc=(0, -0.5, 3.3), material=bone, bevel=0.02)         # jaw
+    for sx in (-0.15, -0.05, 0.05, 0.15):
+        box((0.05, 0.05, 0.1), loc=(sx, -0.62, 3.38), material=dark, bevel=0)
+    ball(0.09, loc=(-0.17, -0.6, 3.68), material=glow)
+    ball(0.09, loc=(0.17, -0.6, 3.68), material=glow)
+    for k, tilt in ((-0.32, 25), (-0.12, 10), (0.12, -10), (0.32, -25)):          # crown of horns
+        cone(0.08, 0.0, 0.55, loc=(k, -0.05, 4.05), rot=(math.radians(-10), math.radians(tilt), 0), material=dark)
+    arm = mat("oarm", (0.78, 0.78, 0.68), roughness=0.7)
+    cyl(0.16, 1.8, loc=(-1.1, -0.35, 2.3), rot=(math.radians(-60), math.radians(12), 0), material=arm)
+    ball(0.26, loc=(-1.25, -1.15, 1.55), material=dark)
+    cyl(0.16, 1.7, loc=(1.1, -0.3, 2.4), rot=(math.radians(-50), math.radians(-12), 0), material=arm)
+    box((0.7, 0.7, 1.3), loc=(1.45, -1.25, 1.35), rot=(math.radians(-40), 0, 0), material=stone, bevel=0.06)   # stone club head
+    cyl(0.1, 1.6, loc=(1.3, -0.9, 1.9), rot=(math.radians(-40), 0, 0), material=dark)
+
+
 def wheel():
     """The bay's valve wheel: a spoked iron wheel on a stem, seen from above."""
     iron = mat("wiron", (0.55, 0.16, 0.14), metallic=0.6, roughness=0.45)
@@ -753,6 +819,10 @@ PARTS = {
     "colossus_0": (lambda: colossus(0), 320, 9.0, "the giant; faces up the lane; walk frame A"),
     "colossus_1": (lambda: colossus(1), 320, 9.0, "the giant; faces up the lane; walk frame B"),
     "wheel":     (wheel, 96, 2.6, "the bay's valve wheel, seen from above; rotate to spin"),
+    "hulk_0":    (lambda: hulk(0), 256, 5.6, "the bridge behemoth; faces down the lane; walk frame A"),
+    "hulk_1":    (lambda: hulk(1), 256, 5.6, "the bridge behemoth; faces down the lane; walk frame B"),
+    "ogre_0":    (lambda: ogre(0), 256, 6.0, "the crypt behemoth; faces down the lane; walk frame A"),
+    "ogre_1":    (lambda: ogre(1), 256, 6.0, "the crypt behemoth; faces down the lane; walk frame B"),
     # the crypt, levels 11 to 20
     "skull_0":      (lambda: skull(0), 128, 1.6, "faces down the lane; tumble frame A"),
     "skull_1":      (lambda: skull(1), 128, 1.6, "faces down the lane; tumble frame B"),

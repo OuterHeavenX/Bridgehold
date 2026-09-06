@@ -8,7 +8,7 @@ export const SQUAD_CAP = 200;
 /* A multiplier gate multiplies, but never adds more than this. Early it is a
    true x2 or x3; late it is a large flat gain, so a big squad cannot snowball
    from one lucky gate to the cap. */
-export const MUL_GAIN_CAP = 80;
+export const MUL_GAIN_CAP = 50;
 
 export const DEFAULT_SAVE = Object.freeze({
   level: 1,                       // the frontier: highest level open to play
@@ -85,8 +85,33 @@ export function statsFor(save) {
    level 1. Husk health rides a slightly gentler curve; the walker rides the
    same one, and squad growth from gate play is what makes it fall faster. */
 export const levelScale = level => Math.pow(1.35, level - 1);
-export const huskHP = (level, t) => 14 * Math.pow(1.32, level - 1) * (1 + t / 100);
-export const bossHP = level => Math.round(12000 * levelScale(level));
+
+/* Power. Every enemy number is anchored to what a fairly-run camp puts out
+   at that level, so the horde and the bosses keep pace with the squad at
+   every level instead of falling behind it around level 3.
+   fairCamp is the ranks the economy pays for by level L (two upgrades per
+   clear, split across the four); expectedCount is a mid-run squad after
+   ordinary gate play; powerAt is their damage per second. */
+export const fairCamp = level => ({
+  dmg: Math.min(30, 2 * (level - 1)), rate: Math.min(25, level - 1),
+  squad: Math.min(40, level - 1), gate: Math.min(15, Math.floor((level - 1) / 2)),
+});
+export const expectedCount = level => Math.min(SQUAD_CAP, 24 + 10 * level);
+export const powerAt = level => squadDps(statsFor({ level, up: fairCamp(level) }), expectedCount(level));
+
+/* Husk health: 6% of a second of expected fire per husk at the end of the
+   run, a third of that at the start when the squad is still small. A pack
+   of twenty takes about 1.2 s of full fire late in the run. */
+export const HUSK_SECONDS = 0.06;
+export const huskHP = (level, t) => powerAt(level) * HUSK_SECONDS * (0.35 + 0.65 * Math.min(1, t / RUN_T));
+/* The boss: eighteen seconds of expected fire, against a descent of about
+   twenty-five, so an average squad wins with room and a weak one does not. */
+export const BOSS_SECONDS = 18;
+export const bossHP = level => Math.round(powerAt(level) * BOSS_SECONDS);
+/* Behemoths: two a run, at twenty and forty-two seconds, each six seconds of
+   expected fire, slow, and hungry at the line. */
+export const MINI = Object.freeze({ at: [20, 42], seconds: 6, speed: 30, r: 22, chewFrac: 0.08, chewEvery: 1.0, reward: 15 });
+export const miniHP = level => Math.round(powerAt(level) * MINI.seconds);
 export const bossReward = level => Math.round(40 * levelScale(level));
 export const clearBonus = level => Math.round(60 * levelScale(level));
 export const coinPerKill = level => Math.ceil(levelScale(level));
@@ -95,10 +120,10 @@ export const coinPerKill = level => Math.ceil(levelScale(level));
    the sprite family that plays each enemy role, with per-role multipliers
    on the baseline so a stage can have its own feel without new rules. */
 export const STAGES = [
-  { id: 'bridge', name: 'The Bridge', from: 1, to: 10, boss: 'walker', bossName: 'THE WALKER',
+  { id: 'bridge', name: 'The Bridge', from: 1, to: 10, boss: 'walker', bossName: 'THE WALKER', mini: 'hulk', miniName: 'BEHEMOTH', phase: 'shells',
     skins: { husk: 'husk', runner: 'runner', brute: 'brute' },
     mods:  { husk: { hp: 1, speed: 1 }, runner: { hp: 1, speed: 1 }, brute: { hp: 1, speed: 1 } } },
-  { id: 'crypt', name: 'The Ossuary', from: 11, to: 20, boss: 'reliquary', bossName: 'THE RELIQUARY',
+  { id: 'crypt', name: 'The Ossuary', from: 11, to: 20, boss: 'reliquary', bossName: 'THE RELIQUARY', mini: 'ogre', miniName: 'BONE OGRE', phase: 'summons',
     skins: { husk: 'bonewalker', runner: 'skull', brute: 'bonelord' },
     mods:  { husk: { hp: 1.1, speed: 0.95 }, runner: { hp: 0.8, speed: 1.15 }, brute: { hp: 1.2, speed: 0.9 } } },
 ];
@@ -140,7 +165,7 @@ export const WEAPONS = Object.freeze({
 export const weaponDps = w => w.dmg * w.pellets / w.interval;
 
 /* The walker's descent. It starts above the screen and stops at the line. */
-export const BOSS = Object.freeze({ w: 226, h: 160, startY: -300, vy: 29 });
+export const BOSS = Object.freeze({ w: 250, h: 180, startY: -300, vy: 29, phaseAt: 0.5, phaseSpeed: 1.5, shellEvery: 2.2, shellFrac: 0.03, summonEvery: 4.0, summonSize: 8 });
 export const bossTimeToLine = () => (LINE_Y - 14 - (BOSS.startY + BOSS.h / 2)) / BOSS.vy;
 
 export const squadDps = (stats, count) => stats.dmg * count / stats.interval;
