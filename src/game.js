@@ -1,7 +1,7 @@
 import {
   RUN_T, LINE_Y, DEFAULT_SAVE, UPGRADES, UNLOCKS, ENEMIES, WEAPONS, BOSS, HELPERS,
   cost, statsFor, huskHP, bossHP, bossReward, clearBonus, coinPerKill,
-  packKind, packSize, packInterval, GATE_INTERVAL, gateStepFor, gateHalf, helpersFor, stageFor, STAGES,
+  packKind, packSize, packInterval, GATE_INTERVAL, gateStepFor, gateHalf, helpersFor, stageFor, STAGES, dailyKey, dailyLevel, seedFrom, seededRandom,
   WHEEL, wheelStepFor, COLOSSUS, SURGE, hitGate, gateValue, applyGate, recordRun,
 } from './balance.js';
 import { createAudio } from './audio.js';
@@ -98,6 +98,11 @@ function renderHome() {
     row.innerHTML = `<div class="unl-mark" aria-hidden="true">${on ? '✓' : h.clear}</div><div><div class="n">${h.name}</div><div class="d">${h.desc} ${on ? 'Deployed on every run.' : 'Clear level ' + h.clear + '.'}</div></div>`;
     hb.appendChild(row);
   }
+  const dk = dailyKey(), dl = dailyLevel(dk, save.level), dd = save.daily && save.daily.key === dk ? save.daily : null;
+  $('dailyKey').textContent = new Date(dk + 'T12:00:00Z').toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
+  $('dailyLevel').textContent = 'Level ' + dl + ' · ' + stageFor(dl).name;
+  $('dailyBest').textContent = dd ? dd.best + ' husks, ' + dd.plays + (dd.plays === 1 ? ' run' : ' runs') : 'Not played yet';
+  $('tutorial').textContent = save.tutorial ? 'Replay tutorial' : 'Tutorial on';
   $('sound').textContent = 'Sound ' + (save.settings.sound ? 'on' : 'off');
   $('sound').setAttribute('aria-pressed', String(save.settings.sound));
   $('motion').textContent = 'Motion ' + (save.settings.motion === 'reduced' ? 'reduced' : 'full');
@@ -107,11 +112,13 @@ $('sound').onclick = () => { save.settings.sound = !save.settings.sound; audio.s
 $('motion').onclick = () => { save.settings.motion = save.settings.motion === 'reduced' ? 'full' : 'reduced'; persist(); renderHome(); };
 $('reset').onclick = () => { if (confirm('Wipe camp progress and coins?')) { const s = save.settings; save = fresh(); save.settings = s; persist(); renderHome(); } };
 $('deploy').onclick = () => startRun();
-$('again').onclick = () => startRun();
+$('playDaily').onclick = () => startRun({ daily: true });
+$('tutorial').onclick = () => { save.tutorial = false; persist(); renderHome(); };
+$('again').onclick = () => startRun(lastOpts);
 $('toCamp').onclick = () => { showScreen('home'); renderHome(); };
 
 function showScreen(id) {
-  for (const s of ['home', 'end']) $(s).hidden = s !== id;
+  for (const s of ['home', 'end', 'pause']) $(s).hidden = s !== id;
   if (id) { const el = $(id); el.classList.remove('in'); void el.offsetWidth; el.classList.add('in'); el.scrollTop = 0; }
 }
 
@@ -121,10 +128,12 @@ let last = 0, paused = false, stripe = 0;
 const keys = {};
 let pointerX = null;
 
-function startRun() {
-  audio.unlock();
+let lastOpts = {};
+function startRun(opts = {}) {
+  audio.unlock(); lastOpts = opts;
   const st = statsFor(save);
-  const level = Math.min(save.selected, save.level);
+  const daily = !!opts.daily, key = dailyKey();
+  const level = daily ? dailyLevel(key, save.level) : Math.min(save.selected, save.level);
   G = {
     t: 0, level, st, stage: stageFor(level), weapon: 'rifle',
     cx: W / 2, tx: W / 2, count: st.squad, peak: st.squad,
@@ -136,6 +145,9 @@ function startRun() {
     helpers: helpersFor(save), shells: [], shellT: 0.9,
     wheel: { need: WHEEL.turns, left: WHEEL.turns, spin: 0, hitT: 0, rearmT: 0, releases: 0 },
     colossus: null, surge: 0, surgeBanner: 0,
+    daily, dailyKey: key, rand: daily ? seededRandom(seedFrom(key)) : null,
+    tips: !save.tutorial && !daily ? tutorialTips() : [], tip: null, ann: { queue: [], cur: null, t: 0 }, redOut: 0,
+    log: [],   // every spawn roll, so a daily can be checked for determinism
   };
   G.frost = G.helpers.find(h => h.k === 'frost') || null;
   showScreen(null);
@@ -143,35 +155,43 @@ function startRun() {
 }
 
 // ---------- spawning ----------
+// Two streams: `roll`/`sr` feed spawn decisions and, on the daily, come from the
+// seed; `rnd` feeds effects and never touches the seed, so particle timing
+// cannot change what the next pack or gate is.
+const roll = () => (G && G.rand ? G.rand() : Math.random());
+const sr = (a, b) => a + roll() * (b - a);
 const rnd = (a, b) => a + Math.random() * (b - a);
 function spawnPack() {
-  const kind = packKind(G.level, Math.random()), E = ENEMIES[kind], mod = G.stage.mods[kind], skin = G.stage.skins[kind];
-  const size = packSize(kind, G.level, Math.random(), G.surge > 0);
-  const hp = huskHP(G.level, G.t) * E.hp * mod.hp, spd = (rnd(52, 76) + G.level * 2.5) * E.speed * mod.speed;
+  const kind = packKind(G.level, roll()), E = ENEMIES[kind], mod = G.stage.mods[kind], skin = G.stage.skins[kind];
+  const size = packSize(kind, G.level, roll(), G.surge > 0);
+  const hp = huskHP(G.level, G.t) * E.hp * mod.hp, spd = (sr(52, 76) + G.level * 2.5) * E.speed * mod.speed;
   const pack = { units: [], kind };
-  const unit = (x, y) => ({ x, y, hp, max: hp, vy: spd * rnd(0.92, 1.08), wob: rnd(0, 6.28), pack, kind, skin, r: E.r, chewT: 0, parked: false, hurt: 0 });
+  G.log.push(kind + ':' + size);
+  const unit = (x, y) => ({ x, y, hp, max: hp, vy: spd * sr(0.92, 1.08), wob: sr(0, 6.28), pack, kind, skin, r: E.r, chewT: 0, parked: false, hurt: 0 });
   if (kind === 'runner') {
-    const cx = rnd(LANE_L + 24, LANE_R - 24);
-    for (let i = 0; i < size; i++) pack.units.push(unit(cx + rnd(-14, 14), -230 - i * 16 - rnd(0, 6)));
+    const cx = sr(LANE_L + 24, LANE_R - 24);
+    for (let i = 0; i < size; i++) pack.units.push(unit(cx + sr(-14, 14), -230 - i * 16 - sr(0, 6)));
   } else if (kind === 'brute') {
-    for (let i = 0; i < size; i++) pack.units.push(unit(rnd(LANE_L + 40, LANE_R - 40), -240 - i * 60));
+    for (let i = 0; i < size; i++) pack.units.push(unit(sr(LANE_L + 40, LANE_R - 40), -240 - i * 60));
   } else {
     const rad = Math.min(58, 12 + size * 1.5);
-    const cx = rnd(LANE_L + rad, LANE_R - rad), cy = -230 - rnd(0, 80);
+    const cx = sr(LANE_L + rad, LANE_R - rad), cy = -230 - sr(0, 80);
     for (let i = 0; i < size; i++) {
-      const a = rnd(0, Math.PI * 2), r = Math.sqrt(Math.random()) * rad;
+      const a = sr(0, Math.PI * 2), r = Math.sqrt(roll()) * rad;
       pack.units.push(unit(cx + Math.cos(a) * r, cy + Math.sin(a) * r * 0.8));
     }
   }
   G.husks.push(...pack.units);
 }
 function spawnGate() {
-  G.gates.push({ y: -230, l: gateHalf(Math.random(), G.level), r: gateHalf(Math.random(), G.level), applied: false });
+  const gl = gateHalf(roll(), G.level), gr = gateHalf(roll(), G.level);
+  G.log.push('gate:' + gl.kind + gl.v + '/' + gr.kind + gr.v);
+  G.gates.push({ y: -230, l: gl, r: gr, applied: false });
 }
 function spawnBoss() {
   const hp = bossHP(G.level);
   G.boss = { x: W / 2, y: BOSS.startY, w: BOSS.w, h: BOSS.h, hp, max: hp, vy: BOSS.vy, atLine: false, hitT: 0, wob: 0, crushT: 0, cracks: [], nextCrack: 0.9 };
-  float(W / 2, 140, G.stage.bossName, G.stage.id === 'crypt' ? '#7dffa0' : '#bdf3ff', 30);
+  announce(G.stage.bossName, 'drain the number before it reaches the line', G.stage.id === 'crypt' ? '#7dffa0' : '#bdf3ff', 2.4);
 }
 function addCrack(b) {
   const side = Math.floor(rnd(0, 4)), pts = [];
@@ -221,7 +241,7 @@ function killHusk(h, idx) {
   // streak, a coin that flies to the counter, and a ring on the deck
   G.streak = G.streakT < 1.2 ? G.streak + 1 : 1; G.streakT = 0; G.streakPop = 0.25;
   if (G.streak > G.bestStreak) G.bestStreak = G.streak;
-  if (G.streak === 10 || G.streak === 25 || G.streak === 50 || G.streak === 100) { float(G.cx, LINE_Y - 120, G.streak >= 100 ? 'UNSTOPPABLE' : G.streak >= 50 ? 'MASSACRE' : G.streak >= 25 ? 'RAMPAGE' : 'ON A ROLL', '#ffb640', 26, { pop: true, caption: G.streak + ' in a row' }); audio.gateGood(); }
+  if (G.streak === 10 || G.streak === 25 || G.streak === 50 || G.streak === 100) { announce(G.streak >= 100 ? 'UNSTOPPABLE' : G.streak >= 50 ? 'MASSACRE' : G.streak >= 25 ? 'RAMPAGE' : 'ON A ROLL', G.streak + ' in a row', '#ffb640', 1.4); audio.gateGood(); }
   const sp = proj(h.x, h.y);
   if (G.coinFx.length < 48) G.coinFx.push({ x: sp.x, y: sp.y, sx: sp.x, sy: sp.y, t: 0, life: 0.55 + Math.random() * 0.2, bend: rnd(-60, 60) });
   G.rings.push({ x: h.x, y: h.y, r: h.r, t: 0, life: 0.35, color: h.kind === 'brute' ? '190,140,255' : '255,255,255' });
@@ -264,15 +284,17 @@ function shellTarget() {
 function unchain() {
   const w = G.wheel; w.releases++; w.rearmT = WHEEL.rearmAfter;
   G.colossus = { x: BAY.cx, y: BAY.giantY, t: 0, wob: 0, phase: 'rise', stompT: 0, foot: 0 };
-  G.surge = SURGE.duration; G.surgeBanner = 2.2;
+  G.surge = SURGE.duration;
   burst(BAY.cx, BAY.giantY - 40, '#9aa3b4', 30, 240); G.shake = 8; G.punch = 1;
   G.rings.push({ x: BAY.cx, y: BAY.giantY, r: 30, t: 0, life: 0.8, color: '120,220,255', grow: 5 });
-  float(W / 2, 150, 'UNCHAINED', '#bdf3ff', 34);
+  announce('UNCHAINED', 'the horde answers: twice the packs, twice as often, for ' + SURGE.duration + ' seconds', '#bdf3ff', 2.6);
   audio.shatter(); audio.thump();
 }
 function breakLine() {
   if (G.over) return;
   G.over = 1; G.won = false; G.endT = 0; G.shake = 8;
+  G.slow = 1.1; G.punch = 1; G.redOut = 1;
+  announce('LINE BROKEN', 'the coins are still yours', '#ff4d5e', 2.6);
   audio.broken();
 }
 function fire() {
@@ -484,6 +506,15 @@ function update(dt) {
   // the colossus and the surge
   if (G.surge > 0) G.surge -= dt;
   if (G.surgeBanner > 0) G.surgeBanner -= dt;
+  // the announcer shows one banner at a time, in order
+  if (G.ann.cur) { G.ann.t += dt; if (G.ann.t > G.ann.cur.life) G.ann.cur = null; }
+  if (!G.ann.cur && G.ann.queue.length) { G.ann.cur = G.ann.queue.shift(); G.ann.t = 0; }
+  // tutorial tips: the first undone tip whose moment has come
+  if (G.tips.length) {
+    if (G.tip && G.tip.until(G)) { G.tip.done = true; G.tip = null; }
+    if (!G.tip) { const next = G.tips.find(t => !t.done && t.when(G)); if (next) { G.tip = next; G.tip.t = 0; } }
+    if (G.tip) G.tip.t += dt;
+  }
   if (G.wheel.rearmT > 0) { G.wheel.rearmT -= dt; if (G.wheel.rearmT <= 0) { G.wheel.need = Math.round(G.wheel.need * WHEEL.rearmMul); G.wheel.left = G.wheel.need; G.wheel.acc = 0; float(BAY.cx, BAY.wheelY - 30, 'REARMED', '#ffb640', 14); } }
   if (G.colossus) {
     const c = G.colossus; c.t += dt; c.wob += dt;
@@ -546,13 +577,18 @@ function update(dt) {
     if (p.t > p.life) G.parts.splice(i, 1);
   }
 
-  if (G.over) { G.endT += dt; if (G.endT > 1.4) finishRun(); }
+  if (G.over) { G.endT += dt; if (G.endT > (G.won ? 1.4 : 2.8)) finishRun(); }
 }
 
 function finishRun() {
   const won = G.won, level = G.level, wasFrontier = level === save.level;
   const held = Math.min(RUN_T, Math.floor(G.t));
-  recordRun(save, level, won, G.peak, G.coins);
+  if (G.daily) {
+    save.coins += G.coins;
+    const d = save.daily && save.daily.key === G.dailyKey ? { ...save.daily } : { key: G.dailyKey, best: 0, plays: 0 };
+    d.plays++; d.best = Math.max(d.best, G.kills); save.daily = d;
+  } else recordRun(save, level, won, G.peak, G.coins);
+  if (!G.daily && (won || G.t > 20)) save.tutorial = true;
   persist();
   $('eSub').textContent = 'Level ' + level + (won ? ' cleared' : '');
   $('eTitle').textContent = won ? 'LINE HELD' : 'LINE BROKEN';
@@ -569,6 +605,11 @@ function finishRun() {
     (nextStage.from === nextLevel && nextLevel > 1 ? `<p>A new stage. New ground, a new cast, and ${nextStage.bossName.toLowerCase()} at the end of it.</p>` : '') +
     (pending ? `<p><b>${pending.name}</b> unlocks when you clear level ${pending.clear}: ${toGo === 1 ? 'that is the next clear' : toGo + ' clears to go'}.</p>` : '<p>Every reward is earned. Only the frontier is left.</p>');
   $('again').innerHTML = won && wasFrontier ? `Deploy <small>level ${save.selected}</small>` : 'Deploy again';
+  if (G.daily) {
+    $('eSub').textContent = 'Daily bridge · ' + G.dailyKey;
+    $('eLede').textContent = (won ? 'Line held. ' : 'Line broken. ') + G.kills + ' husks down; your best today is ' + save.daily.best + '. Everyone gets the same rolls today.';
+    $('again').innerHTML = 'Daily <small>again</small>';
+  }
   showScreen('end');
   G = null;
 }
@@ -581,6 +622,49 @@ function countUp(el, value) {
     if (f < 1) requestAnimationFrame(step);
   };
   requestAnimationFrame(step);
+}
+
+// ---------- announcer and tutorial ----------
+function announce(title, caption, color, life) { G.ann.queue.push({ title, caption, color, life: life || 1.6 }); }
+function tutorialTips() {
+  return [
+    { title: 'STEER', text: 'Drag left and right. The squad fires by itself.', when: g => g.t > 0.8, until: g => g.t > 5 },
+    { title: 'GATES', text: 'Shoot the red half until it turns blue, then cross the better half.', when: g => g.gates.some(x => !x.applied && x.y > -60), until: g => g.gatesCrossed > 0 },
+    { title: 'THE BAY', text: 'Steer all the way left to step in and shoot the wheel. The lane goes uncovered while you do.', when: g => g.t > 15, until: g => g.t > 21 || inBay(g.cx) },
+    { title: 'SIXTY SECONDS', text: 'Then the boss comes. Drain its number before it reaches the line.', when: g => g.t > 52, until: g => g.t > 62 },
+  ];
+}
+function wrapText(text, max) {
+  const words = text.split(' '), lines = []; let line = '';
+  for (const w of words) { if ((line + ' ' + w).trim().length > max) { lines.push(line.trim()); line = w; } else line += ' ' + w; }
+  if (line.trim()) lines.push(line.trim());
+  return lines;
+}
+function drawAnnouncer() {
+  const a = G.ann.cur; if (!a) return;
+  const t = G.ann.t, inF = Math.min(1, t / 0.18), outF = Math.max(0, Math.min(1, (a.life - t) / 0.3));
+  const alpha = Math.min(inF, outF), sc = reduceMotion() ? 1 : 1 + (1 - inF) * 0.35;
+  const lines = a.caption ? wrapText(a.caption, 40) : [];
+  const hgt = 46 + lines.length * 15;
+  ctx.save(); ctx.globalAlpha = alpha; ctx.translate(W / 2, 108 + hgt / 2); ctx.scale(sc, sc);
+  pill(-140, -hgt / 2, 280, hgt, 'rgba(12,20,36,.84)', 12);
+  ctx.fillStyle = a.color; ctx.fillRect(-140, -hgt / 2, 4, hgt);
+  strokeText(a.title, 0, -hgt / 2 + 24, 24, a.color, 700, 'rgba(0,0,0,0)');
+  ctx.font = 'italic 500 12px Barlow, sans-serif'; ctx.fillStyle = '#d6dfea'; ctx.textAlign = 'center';
+  lines.forEach((l, i) => ctx.fillText(l, 0, -hgt / 2 + 44 + i * 15));
+  ctx.restore();
+}
+function drawTip() {
+  const tip = G.tip; if (!tip) return;
+  const inF = Math.min(1, tip.t / 0.25), lines = wrapText(tip.text, 34), hgt = 48 + lines.length * 16;
+  const y = Math.round(H * 0.40);
+  ctx.save(); ctx.globalAlpha = inF;
+  pill(W / 2 - 132, y - hgt / 2, 264, hgt, 'rgba(255,255,255,.94)', 12);
+  ctx.fillStyle = '#ffb640'; ctx.fillRect(W / 2 - 132, y - hgt / 2, 4, hgt);
+  ctx.font = F(700, 11); ctx.textAlign = 'left'; ctx.fillStyle = '#b86f0a'; ctx.fillText(tip.title, W / 2 - 116, y - hgt / 2 + 18);
+  ctx.font = '500 13px Barlow, sans-serif'; ctx.fillStyle = '#142238';
+  lines.forEach((l, i) => ctx.fillText(l, W / 2 - 116, y - hgt / 2 + 38 + i * 16));
+  ctx.restore();
 }
 
 // ---------- drawing ----------
@@ -1139,12 +1223,8 @@ function drawHUD() {
     ctx.fillText('sixty seconds, then ' + G.stage.bossName.toLowerCase(), W / 2, 272 + rise);
     ctx.globalAlpha = 1;
   }
-  if (paused) {
-    ctx.fillStyle = 'rgba(12,20,36,.7)'; ctx.fillRect(0, 0, W, H);
-    strokeText('PAUSED', W / 2, H / 2 - 10, 36, '#fff');
-    ctx.font = 'italic 500 14px Barlow, sans-serif'; ctx.fillStyle = '#b7c3d6'; ctx.textAlign = 'center';
-    ctx.fillText('tap the clock or press P to continue', W / 2, H / 2 + 22);
-  }
+  drawAnnouncer(); drawTip();
+  if (paused) { ctx.fillStyle = 'rgba(12,20,36,.35)'; ctx.fillRect(0, 0, W, H); }
 }
 function draw() {
   ctx.save();
@@ -1195,6 +1275,12 @@ function draw() {
       ctx.fillStyle = '#fff2c8'; ctx.beginPath(); ctx.arc(c.x - 1.2, c.y - 1.2, 1.8, 0, 6.28); ctx.fill();
     }
     if (G.white > 0) { ctx.fillStyle = `rgba(255,255,255,${Math.min(0.85, G.white)})`; ctx.fillRect(0, 0, W, H); }
+    if (G.redOut > 0 && G.over && !G.won) {
+      const f = Math.min(1, G.endT / 0.5);
+      const rg = ctx.createRadialGradient(W / 2, H * 0.55, H * 0.15, W / 2, H * 0.55, H * 0.85);
+      rg.addColorStop(0, `rgba(120,10,30,${0.15 * f})`); rg.addColorStop(1, `rgba(60,0,15,${0.75 * f})`);
+      ctx.fillStyle = rg; ctx.fillRect(0, 0, W, H);
+    }
   }
   ctx.drawImage(G && G.stage.id === 'crypt' ? layers.vignetteDark : layers.vignette, 0, 0);
   if (G) drawHUD();
@@ -1220,7 +1306,7 @@ function setup() {
 const toXY = e => { const r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left) / r.width * W, y: (e.clientY - r.top) / r.height * H }; };
 cv.addEventListener('pointerdown', e => {
   const p = toXY(e);
-  if (G && p.y < 70 && Math.abs(p.x - W / 2) < 70) { paused = !paused; return; }
+  if (G && p.y < 70 && Math.abs(p.x - W / 2) < 70) { togglePause(); return; }
   if (paused) return;
   pointerX = p.x; cv.setPointerCapture(e.pointerId);
 });
@@ -1228,11 +1314,26 @@ cv.addEventListener('pointermove', e => { if (!paused && (e.buttons || e.pointer
 cv.addEventListener('pointerup', () => { pointerX = null; });
 window.addEventListener('keydown', e => {
   keys[e.code] = true;
-  if (e.code === 'KeyP' && G) paused = !paused;
+  if ((e.code === 'KeyP' || e.code === 'Escape') && G) togglePause();
   if (['ArrowLeft', 'ArrowRight', 'Space'].includes(e.code)) e.preventDefault();
 });
 window.addEventListener('keyup', e => { keys[e.code] = false; });
-document.addEventListener('visibilitychange', () => { if (document.hidden && G) paused = true; });
+document.addEventListener('visibilitychange', () => { if (document.hidden && G && !paused) togglePause(); });
+function togglePause() {
+  if (!G || G.over) return;
+  paused = !paused;
+  if (paused) { syncPauseSettings(); showScreen('pause'); } else { showScreen(null); last = performance.now(); }
+}
+function syncPauseSettings() {
+  $('sound2').textContent = 'Sound ' + (save.settings.sound ? 'on' : 'off');
+  $('motion2').textContent = 'Motion ' + (save.settings.motion === 'reduced' ? 'reduced' : 'full');
+  $('pLevel').textContent = G.daily ? 'Daily bridge · level ' + G.level : 'Level ' + G.level + ' · ' + G.stage.name;
+}
+$('resume').onclick = () => togglePause();
+$('restart').onclick = () => { paused = false; showScreen(null); startRun(lastOpts); };
+$('quit').onclick = () => { paused = false; showScreen(null); G.over = 1; G.won = false; finishRun(); };
+$('sound2').onclick = () => { save.settings.sound = !save.settings.sound; audio.setOn(save.settings.sound); persist(); syncPauseSettings(); };
+$('motion2').onclick = () => { save.settings.motion = save.settings.motion === 'reduced' ? 'full' : 'reduced'; persist(); syncPauseSettings(); };
 window.addEventListener('resize', setup);
 
 setup(); renderHome(); showScreen('home');

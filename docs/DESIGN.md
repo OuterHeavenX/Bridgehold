@@ -204,6 +204,24 @@ of the curve, and play will move the constants.
   giant's unchaining punches and rings the same way. Kills leave a small ring where
   the enemy stood. All of it honours reduced motion.
 
+## Pass 9, shipped: handing it to a friend
+
+- **Tutorial.** Four cards on the first run only: steer, gates, the bay, sixty seconds.
+  Each appears at its moment and leaves when the player has done the thing or the
+  moment has passed. A settings button replays it.
+- **Pause menu.** Tap the clock or press P or Escape: resume, restart the level, quit to
+  camp, sound and motion. Quitting keeps the coins and counts as a broken line, so it is
+  never a free retry. Backgrounding the tab pauses.
+- **Defeat beat.** The line breaking slows time, punches the camera, bleeds red in from
+  the edges and announces LINE BROKEN before the end screen, instead of a cut.
+- **Daily bridge.** One seeded run a day at a level derived from the date, clamped to
+  the player's frontier, with kills as the score and the best kept per day. Every roll in
+  the run comes from the seed, so everyone who plays the daily sees the same gates and
+  packs. It pays coins but never moves the frontier. No server.
+- **One announcer.** Streak milestones, the boss's arrival, the unchaining and the
+  defeat all go through a single queue that shows one banner at a time under the HUD,
+  so they no longer pile on the squad or each other. Gate pops stay at the squad.
+
 ## What comes next
 
 - **More allies.** A third flank is not available, so later allies should replace or

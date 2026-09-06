@@ -17,7 +17,21 @@ export const DEFAULT_SAVE = Object.freeze({
   up: Object.freeze({ dmg: 0, rate: 0, squad: 0, gate: 0 }),
   levels: Object.freeze({}),      // per-level { best, cleared }
   settings: Object.freeze({ sound: true, motion: 'full' }),
+  tutorial: false,                // true once the first run's tips have been shown
+  daily: null,                    // { key, best, plays } for today's seeded run
 });
+
+/* The daily: one seeded run a day at a level everyone shares, clamped to
+   the player's frontier so nobody is asked to play a level they have not
+   reached. Same rolls for everyone that day; kills are the score. */
+export const dailyKey = (d = new Date()) => d.toISOString().slice(0, 10);
+export const dayIndex = key => Math.floor(Date.parse(key + 'T00:00:00Z') / 86400000);
+export const dailyLevel = (key, frontier) => Math.max(1, Math.min(frontier, 1 + (dayIndex(key) % 12)));
+export function seedFrom(str) { let h = 2166136261; for (const c of str) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; }
+export function seededRandom(seed) {
+  let a = seed >>> 0;
+  return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+}
 
 export const UPGRADES = [
   { k: 'dmg',   name: 'Rounds',        desc: '+15% damage per shot',    base: 60,  max: 30 },

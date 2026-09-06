@@ -97,6 +97,14 @@ skulls, armoured bonelords, and the Reliquary, a sarcophagus with the lich on it
 in place of the walker. The rules are the same in every stage; the cast and the room
 change.
 
+**The daily bridge** is one seeded run a day at a level everyone shares, clamped to your
+frontier. Same gates and packs for everyone that day; husks down is the score. It pays
+coins and never moves the frontier.
+
+**Pause** by tapping the clock or pressing P. Restart or quit from there; quitting keeps
+the coins and counts as a broken line. The first run shows a four-card tutorial that
+settings can replay.
+
 Cleared levels stay open on the home screen with your best squad on each, so an old
 level is worth replaying. Only clearing the frontier level opens the next one.
 

@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import {
   DEFAULT_SAVE, ENEMIES, WEAPONS, SQUAD_CAP, MUL_GAIN_CAP, HELPERS, helpersFor, UPGRADES,
   packKind, packSize, weaponDps, gateHalf, hitGate, applyGate, recordRun, gateStepFor, GATE_STEP_SECONDS, statsFor,
-  WHEEL, wheelStepFor, COLOSSUS, SURGE, STAGES, stageFor,
+  WHEEL, wheelStepFor, COLOSSUS, SURGE, STAGES, stageFor, dailyKey, dailyLevel, seedFrom, seededRandom,
 } from '../src/balance.js';
 
 const fresh = () => ({ ...DEFAULT_SAVE, up: { ...DEFAULT_SAVE.up }, levels: {}, settings: { ...DEFAULT_SAVE.settings } });
@@ -160,4 +160,18 @@ test('every level from 1 to 20 belongs to exactly one stage, and past 20 the las
     for (const role of ['husk', 'runner', 'brute']) { assert.ok(st.skins[role]); assert.ok(st.mods[role].hp > 0 && st.mods[role].speed > 0); }
     assert.ok(st.boss && st.bossName);
   }
+});
+
+test('the daily is the same for everyone and clamps to the frontier', () => {
+  const key = '2026-09-06';
+  const a = seededRandom(seedFrom(key)), b = seededRandom(seedFrom(key)), c = seededRandom(seedFrom('2026-09-07'));
+  const sa = Array.from({ length: 8 }, () => a()), sb = Array.from({ length: 8 }, () => b()), sc = Array.from({ length: 8 }, () => c());
+  assert.deepEqual(sa, sb, 'one key, one sequence');
+  assert.notDeepEqual(sa, sc, 'another day, another sequence');
+  for (const v of sa) assert.ok(v >= 0 && v < 1);
+  assert.equal(dailyKey(new Date('2026-09-06T15:00:00Z')), '2026-09-06');
+  const L = dailyLevel(key, 20);
+  assert.ok(L >= 1 && L <= 12);
+  assert.equal(dailyLevel(key, 1), 1, 'a fresh account plays level 1');
+  assert.equal(dailyLevel(key, 3), Math.min(3, L));
 });
