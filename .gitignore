@@ -1,8 +1,0 @@
-.DS_Store
-Thumbs.db
-desktop.ini
-node_modules/
-.idea/
-.vscode/
-*.log
-coverage/
